@@ -1,0 +1,19 @@
+{
+    "name": "@toggl-auto-tracker/shared",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+      "dev": "tsc --watch",
+      "build": "tsc",
+      "lint": "eslint ."
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+      "dist"
+    ],
+    "devDependencies": {
+      "typescript": "^5.3.3"
+    }
+  }
