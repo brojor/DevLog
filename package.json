@@ -25,7 +25,7 @@
     "vite": "^6.2.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs}": [
+    "*.{ts,tsx,js,jsx,mjs,json}": [
       "eslint --fix"
     ]
   }

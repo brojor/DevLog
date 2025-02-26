@@ -1,19 +1,20 @@
 {
-    "name": "@toggl-auto-tracker/shared",
-    "version": "0.1.0",
-    "private": true,
-    "type": "module",
-    "scripts": {
-      "dev": "tsc --watch",
-      "build": "tsc",
-      "lint": "eslint ."
-    },
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "files": [
-      "dist"
-    ],
-    "devDependencies": {
-      "typescript": "^5.3.3"
-    }
+  "name": "@toggl-auto-tracker/shared",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "lint": "NODE_NO_WARNINGS=1 eslint .",
+    "lint:fix": "NODE_NO_WARNINGS=1 eslint . --fix"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
   }
+}
