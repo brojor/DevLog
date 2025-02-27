@@ -1,12 +1,8 @@
-import dotenv from 'dotenv'
 import express from 'express'
 import apiRoutes from './api/routes'
 import { config } from './config'
 import { logger } from './config/logger'
 import { httpLogger } from './middlewares/logger'
-
-// Načtení proměnných prostředí
-dotenv.config()
 
 // Definice portu
 const PORT = config.server.port
@@ -29,7 +25,7 @@ app.get('/', (req, res) => {
 app.use('/api', apiRoutes)
 
 // Chybový handler
-app.use((err: Error, req: express.Request, res: express.Response) => {
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   logger.error({ err }, 'Neočekávaná chyba')
   res.status(500).json({ error: 'Interní chyba serveru' })
 })

@@ -31,9 +31,10 @@ class TogglService {
         headers: this.headers,
         body: JSON.stringify({
           description,
-          workspace_id: this.workspaceId,
+          workspace_id: Number(this.workspaceId),
           start: startTime,
           created_with: 'Toggl Auto Tracker',
+          duration: -1,
         }),
       })
 

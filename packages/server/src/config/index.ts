@@ -1,4 +1,8 @@
 import { env } from 'node:process'
+import dotenv from 'dotenv'
+
+// Načtení proměnných prostředí
+dotenv.config()
 
 export const config = {
   // Server nastavení
