@@ -95,6 +95,25 @@ importers:
         specifier: ^5.3.3
         version: 5.7.3
 
+  packages/vscode-extension:
+    dependencies:
+      '@toggl-auto-tracker/shared':
+        specifier: workspace:^
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.5
+        version: 22.13.5
+      '@types/vscode':
+        specifier: ^1.96.0
+        version: 1.97.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.7.3
+      vite:
+        specifier: ^6.2.0
+        version: 6.2.0(@types/node@22.13.5)(jiti@2.4.2)(tsx@4.19.3)(yaml@2.7.0)
+
 packages:
 
   '@ampproject/remapping@2.3.0':
@@ -815,6 +834,9 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
+
+  '@types/vscode@1.97.0':
+    resolution: {integrity: sha512-ueE73loeOTe7olaVyqP9mrRI54kVPJifUPjblZo9fYcv1CuVLPOEKEkqW0GkqPC454+nCEoigLWnC2Pp7prZ9w==}
 
   '@typescript-eslint/eslint-plugin@8.25.0':
     resolution: {integrity: sha512-VM7bpzAe7JO/BFf40pIT1lJqS/z1F8OaSsUB3rpFJucQA4cOSuH2RVVVkFULN+En0Djgr29/jb4EQnedUo95KA==}
@@ -4045,6 +4067,8 @@ snapshots:
       '@types/send': 0.17.4
 
   '@types/unist@3.0.3': {}
+
+  '@types/vscode@1.97.0': {}
 
   '@typescript-eslint/eslint-plugin@8.25.0(@typescript-eslint/parser@8.25.0(eslint@9.21.0(jiti@2.4.2))(typescript@5.7.3))(eslint@9.21.0(jiti@2.4.2))(typescript@5.7.3)':
     dependencies:
