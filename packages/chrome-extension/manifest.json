@@ -3,9 +3,6 @@
   "name": "Toggl Auto Tracker",
   "version": "0.1.0",
   "description": "Automatic time tracking for Toggl",
-  "action": {
-    "default_popup": "src/popup/index.html"
-  },
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
