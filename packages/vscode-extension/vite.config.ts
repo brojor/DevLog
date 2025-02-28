@@ -3,6 +3,8 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   build: {
+    target: 'node16',
+    outDir: 'dist',
     lib: {
       entry: resolve(__dirname, 'src/extension.ts'),
       formats: ['cjs'],
@@ -12,6 +14,6 @@ export default defineConfig({
       external: ['vscode'],
     },
     sourcemap: true,
-    outDir: 'dist',
+    minify: false,
   },
 })

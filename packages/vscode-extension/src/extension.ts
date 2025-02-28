@@ -1,20 +1,40 @@
 import * as vscode from 'vscode'
+import { ActivityTracker } from './ActivityTracker'
 
-// Tato funkce je volána při aktivaci rozšíření
+let activityTracker: ActivityTracker | undefined
+
+/**
+ * Tato metoda je volána při aktivaci rozšíření
+ */
 export function activate(context: vscode.ExtensionContext) {
   console.log('Toggl Auto Tracker rozšíření bylo aktivováno!')
 
-  // Registrace příkazu Hello World
-  const disposable = vscode.commands.registerCommand('toggl-auto-tracker.helloWorld', () => {
-    // Zobrazí informační zprávu
-    vscode.window.showInformationMessage('Hello World from Toggl Auto Tracker!')
+  // Inicializace a spuštění sledovače aktivity
+  activityTracker = new ActivityTracker()
+  activityTracker.start()
+
+  // Registrace příkazu pro zobrazení informační zprávy
+  const disposable = vscode.commands.registerCommand('toggl-auto-tracker.showStatusMessage', () => {
+    vscode.window.showInformationMessage(
+      `Toggl Auto Tracker je aktivní!`,
+    )
   })
 
-  // Přidání příkazu do kontextu
   context.subscriptions.push(disposable)
+
+  // Přidáme sledovač aktivity přímo do subscriptions
+  if (activityTracker) {
+    context.subscriptions.push(activityTracker)
+  }
 }
 
-// Tato funkce je volána při deaktivaci rozšíření
+/**
+ * Tato metoda je volána při deaktivaci rozšíření
+ */
 export function deactivate() {
+  if (activityTracker) {
+    activityTracker.dispose()
+    activityTracker = undefined
+  }
   console.log('Toggl Auto Tracker rozšíření bylo deaktivováno.')
 }

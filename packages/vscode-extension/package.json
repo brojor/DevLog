@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Automatically track your time spent on projects in Toggl",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brojor/toggl-auto-tracker.git"
+  },
   "categories": [
     "Other"
   ],
@@ -12,22 +16,33 @@
   "engines": {
     "vscode": "^1.96.0"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
       {
-        "command": "toggl-auto-tracker.helloWorld",
-        "title": "Hello World from Toggl Auto Tracker"
+        "command": "toggl-auto-tracker.showStatusMessage",
+        "title": "Toggl Auto Tracker: Show Status"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Toggl Auto Tracker",
+      "properties": {
+        "togglAutoTracker.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL adresa pro Toggl Auto Tracker server"
+        }
+      }
+    }
   },
   "scripts": {
     "dev": "vite build --watch",
-    "vscode:prepublish": "pnpm run build",
     "build": "vite build",
-    "lint": "eslint .",
-    "lint:fix": "eslint --fix .",
-    "package": "vsce package --no-dependencies --allow-missing-repository --out dist"
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint --fix src --ext ts",
+    "package": "vite build && vsce package --no-dependencies --out dist"
   },
   "dependencies": {
     "@toggl-auto-tracker/shared": "workspace:^"
