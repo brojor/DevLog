@@ -22,8 +22,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "toggl-auto-tracker.showStatusMessage",
-        "title": "Toggl Auto Tracker: Show Status"
+        "command": "toggl-auto-tracker.togglePause",
+        "title": "Toggl Auto Tracker: Toggle Pause"
       }
     ],
     "configuration": {

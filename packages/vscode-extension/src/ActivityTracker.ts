@@ -13,6 +13,7 @@ export class ActivityTracker {
   private readonly throttleInterval: number = 5000 // 5 sekund
   private currentProjectName?: string
   private apiClient: ApiClient
+  private isPaused: boolean = false
 
   constructor() {
     this.lastActivity = Date.now()
@@ -71,6 +72,11 @@ export class ActivityTracker {
    */
   private async sendActivity(): Promise<void> {
     try {
+      // Pokud je sledování pozastaveno, nepokračujeme
+      if (this.isPaused) {
+        return
+      }
+
       // Vždy aktualizujeme čas poslední aktivity
       this.lastActivity = Date.now()
 
@@ -113,6 +119,23 @@ export class ActivityTracker {
     catch (error) {
       console.error('Chyba při získávání informací o projektu:', error)
     }
+  }
+
+  /**
+   * Přepne stav sledování (pozastaveno/aktivní)
+   * @returns Nový stav (true = pozastaveno, false = aktivní)
+   */
+  public togglePause(): boolean {
+    this.isPaused = !this.isPaused
+    console.log(`ActivityTracker: Sledování aktivity ${this.isPaused ? 'pozastaveno' : 'obnoveno'}`)
+    return this.isPaused
+  }
+
+  /**
+   * Vrátí aktuální stav sledování
+   */
+  public get paused(): boolean {
+    return this.isPaused
   }
 
   /**
