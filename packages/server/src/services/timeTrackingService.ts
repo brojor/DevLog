@@ -1,195 +1,193 @@
-import type { CommitInfo, Heartbeat } from '@toggl-auto-tracker/shared'
-import type { ActiveTimeEntry } from '../types'
+import type { CodeStats, Heartbeat } from '@toggl-auto-tracker/shared'
+import type { ActiveSession, CommitInfo, CreateNewSessionParams } from '../types'
+import type { TogglService } from './togglService'
 import { config } from '../config'
-import { logger } from '../config/logger'
 import { togglService } from './togglService'
 
-class TimeTrackingService {
-  // Uchovává informace o aktuálním aktivním time entry
-  private activeTimeEntry: ActiveTimeEntry | null = null
+export class TimeTrackingService {
+  private activeSession: ActiveSession | null = null
+  private readonly togglService: TogglService
+  private inactivityTimeoutId: NodeJS.Timeout | null = null
 
-  constructor() {
-    // Nastavení pravidelné kontroly neaktivity
-    this.startInactivityCheck()
-    logger.info('TimeTrackingService inicializována')
+  // Přímý přístup k hodnotám konfigurace
+  private readonly heartbeatInterval = config.app.heartbeatInterval
+  private readonly inactivityTimeout = config.app.inactivityTimeout
+
+  constructor(togglService: TogglService) {
+    this.togglService = togglService
   }
 
-  // Zpracuje heartbeat a vytvoří/aktualizuje time entry
-  async processHeartbeat(heartbeat: Heartbeat): Promise<boolean> {
-    const now = new Date()
-    const heartbeatTime = new Date(heartbeat.timestamp)
-
-    // Pokud je heartbeat starší než interval heartbeatu + buffer (např. 10 sekund),
-    // můžeme ho ignorovat jako zpožděný
-    const maxHeartbeatAge = config.app.heartbeatInterval + 10 // v sekundách
-    if ((now.getTime() - heartbeatTime.getTime()) / 1000 > maxHeartbeatAge) {
-      logger.debug({ heartbeat }, 'Ignorován zpožděný heartbeat')
-      return false
+  async processHeartbeat(heartbeat: Heartbeat): Promise<number> {
+    // Pokud neexistuje aktivní session, vytvoříme novou
+    if (!this.activeSession) {
+      const entryId = await this.createNewSession({ projectName: heartbeat.projectName, start: heartbeat.timestamp })
+      return entryId
     }
 
-    try {
-      // Pokud nemáme aktivní time entry, vytvoříme nový
-      if (!this.activeTimeEntry) {
-        const description = heartbeat.projectName
-          ? `Working on ${heartbeat.projectName}`
-          : 'Working'
-
-        const newTimeEntry = await togglService.createTimeEntry(description)
-
-        if (!newTimeEntry) {
-          logger.error('Nepodařilo se vytvořit time entry')
-          return false
-        }
-
-        this.activeTimeEntry = {
-          id: newTimeEntry.id,
-          startTime: new Date(),
-          lastHeartbeat: now,
-          source: heartbeat.source,
-          projectName: heartbeat.projectName,
-          description,
-        }
-
-        logger.info({ timeEntry: this.activeTimeEntry }, 'Vytvořen nový time entry')
-        return true
-      }
-
-      // Aktualizujeme čas posledního heartbeatu
-      this.activeTimeEntry.lastHeartbeat = now
-
-      // Pokud se změnil projekt, aktualizujeme popis
-      if (heartbeat.projectName
-        && heartbeat.projectName !== this.activeTimeEntry.projectName) {
-        this.activeTimeEntry.projectName = heartbeat.projectName
-        const newDescription = `Working on ${heartbeat.projectName}`
-        this.activeTimeEntry.description = newDescription
-
-        // Aktualizace time entry v Toggl
-        if (this.activeTimeEntry.id) {
-          await togglService.updateTimeEntry(this.activeTimeEntry.id, {
-            description: newDescription,
-          })
-        }
-
-        logger.info(
-          {
-            timeEntryId: this.activeTimeEntry.id,
-            projectName: heartbeat.projectName,
-          },
-          'Aktualizován projekt time entry',
-        )
-      }
-
-      logger.debug({ heartbeat, activeTimeEntry: this.activeTimeEntry }, 'Heartbeat zpracován')
-      return true
+    // Pokud se změnil projekt, ukončíme starou session a vytvoříme novou
+    if (this.activeSession.projectName
+      && heartbeat.projectName
+      && heartbeat.projectName !== this.activeSession.projectName) {
+      await this.endSession()
+      const entryId = await this.createNewSession({ projectName: heartbeat.projectName, start: heartbeat.timestamp })
+      return entryId
     }
-    catch (error) {
-      logger.error({ error, heartbeat }, 'Chyba při zpracování heartbeatu')
-      return false
+
+    // Aktualizujeme čas podle zdroje heartbeatu
+    if (heartbeat.source === 'vscode') {
+      this.activeSession.vsCodeTime += this.heartbeatInterval
     }
+    else if (heartbeat.source === 'chrome') {
+      this.activeSession.browserTime += this.heartbeatInterval
+    }
+
+    // Aktualizujeme čas poslední aktivity
+    this.activeSession.lastActivity = Math.max(this.activeSession.lastActivity, heartbeat.timestamp)
+
+    // Naplánujeme kontrolu neaktivity
+    this.scheduleInactivityCheck()
+
+    // Pokud jsme získali novou informaci o projektu (a dosud jsme žádnou neměli)
+    if (!this.activeSession.projectName && heartbeat.projectName) {
+      await this.updateTimeEntryProject(heartbeat.projectName)
+    }
+
+    // Vrátíme ID aktivní session
+    return this.activeSession.sessionId
   }
 
-  // Zpracuje commit a ukončí aktuální time entry
-  async processCommit(commitInfo: CommitInfo): Promise<boolean> {
-    try {
-      if (!this.activeTimeEntry || !this.activeTimeEntry.id) {
-        logger.info('Žádný aktivní time entry k ukončení při commitu')
-        return false
-      }
-
-      // Ukončíme aktuální time entry
-      const stoppedEntry = await togglService.stopTimeEntry(this.activeTimeEntry.id)
-
-      if (!stoppedEntry) {
-        logger.error({ timeEntryId: this.activeTimeEntry.id }, 'Nepodařilo se ukončit time entry')
-        return false
-      }
-
-      // Aktualizujeme popis ukončeného time entry podle commit zprávy
-      await togglService.updateTimeEntry(this.activeTimeEntry.id, {
-        description: commitInfo.message,
-      })
-
-      logger.info(
-        {
-          timeEntryId: this.activeTimeEntry.id,
-          commitMessage: commitInfo.message,
-        },
-        'Time entry ukončen a aktualizován commit zprávou',
-      )
-
-      // Vytvoříme nový time entry pro pokračující práci
-      const newDescription = this.activeTimeEntry.projectName
-        ? `Working on ${this.activeTimeEntry.projectName}`
-        : 'Working'
-
-      const newTimeEntry = await togglService.createTimeEntry(newDescription)
-
-      if (!newTimeEntry) {
-        logger.error('Nepodařilo se vytvořit nový time entry po commitu')
-        this.activeTimeEntry = null
-        return true // commit zpracování bylo úspěšné, i když se nepodařilo vytvořit nový entry
-      }
-
-      this.activeTimeEntry = {
-        id: newTimeEntry.id,
-        startTime: new Date(),
-        lastHeartbeat: new Date(),
-        source: this.activeTimeEntry.source,
-        projectName: this.activeTimeEntry.projectName,
-        description: newDescription,
-      }
-
-      logger.info({ timeEntry: this.activeTimeEntry }, 'Vytvořen nový time entry po commitu')
-      return true
+  async processCodeStats(stats: CodeStats): Promise<number> {
+    if (!this.activeSession) {
+      return 0 // Nevrací sessionId, což znamená, že session není aktivní
     }
-    catch (error) {
-      logger.error({ error, commitInfo }, 'Chyba při zpracování commitu')
-      return false
-    }
+
+    // Aktualizujeme statistiky kódu v aktivní session
+    this.activeSession.filesChanged = stats.filesChanged
+    this.activeSession.linesAdded = stats.linesAdded
+    this.activeSession.linesRemoved = stats.linesRemoved
+
+    // Vrátíme sessionId (togglEntryId)
+    return this.activeSession.sessionId
   }
 
-  // Kontroluje neaktivitu a ukončí time entry, pokud je třeba
-  private startInactivityCheck(): void {
-    // Kontrola každou minutu
-    setInterval(() => {
-      this.checkInactivity()
-    }, 60 * 1000)
-
-    logger.debug('Zahájena pravidelná kontrola neaktivity')
-  }
-
-  private async checkInactivity(): Promise<void> {
-    if (!this.activeTimeEntry) {
+  async processCommit(commitInfo: CommitInfo): Promise<void> {
+    // Pokud nemáme aktivní session, není co ukončovat
+    if (!this.activeSession) {
       return
     }
 
-    const now = new Date()
-    const lastHeartbeat = this.activeTimeEntry.lastHeartbeat
+    // Uložíme aktuální projectName před ukončením session
+    const currentProject = this.activeSession.projectName
 
-    // Pokud jsme neobdrželi heartbeat po dobu delší než inactivityTimeout,
-    // ukončíme time entry
-    const inactivitySeconds = (now.getTime() - lastHeartbeat.getTime()) / 1000
+    // Ukončíme aktuální session s commit zprávou
+    await this.endSession(commitInfo.message)
 
-    if (inactivitySeconds > config.app.inactivityTimeout) {
-      logger.info(
-        {
-          timeEntryId: this.activeTimeEntry.id,
-          inactivitySeconds,
-          lastHeartbeat: lastHeartbeat.toISOString(),
-        },
-        'Detekována neaktivita, ukončuji time entry',
-      )
+    // Vytvoříme novou session pro pokračování práce
+    await this.createNewSession({ projectName: currentProject })
+  }
 
-      if (this.activeTimeEntry.id) {
-        // Ukončíme aktuální time entry
-        await togglService.stopTimeEntry(this.activeTimeEntry.id)
-      }
-
-      this.activeTimeEntry = null
+  private async createNewSession({ start = Date.now(), description = 'Automatic time tracking', projectName }: CreateNewSessionParams): Promise<number> {
+    const sessionId = await this.togglService.createTimeEntry({ start, description, projectName })
+    if (!sessionId) {
+      throw new Error('Failed to create new time entry')
     }
+
+    this.activeSession = {
+      sessionId,
+      projectName,
+      lastActivity: start,
+      vsCodeTime: 0,
+      browserTime: 0,
+    }
+
+    // Naplánujeme kontrolu neaktivity pro novou session
+    this.scheduleInactivityCheck()
+
+    return sessionId
+  }
+
+  private scheduleInactivityCheck(): void {
+    // Zrušíme existující timeout, pokud existuje
+    if (this.inactivityTimeoutId) {
+      clearTimeout(this.inactivityTimeoutId)
+    }
+
+    // Naplánujeme ukončení session přesně po uplynutí timeoutu neaktivity
+    // Převádíme sekundy na milisekundy
+    this.inactivityTimeoutId = setTimeout(async () => {
+      await this.endSession()
+    }, this.inactivityTimeout * 1000)
+  }
+
+  private async updateTimeEntryProject(projectName: string): Promise<void> {
+    if (!this.activeSession)
+      return
+
+    // Uložíme nový projekt do aktivní session
+    this.activeSession.projectName = projectName
+
+    // Aktualizujeme time entry v Toggl s novým projektem
+    await this.togglService.updateTimeEntry(this.activeSession.sessionId, { projectName })
+  }
+
+  private formatSessionDescription(commitMessage?: string): string {
+    if (!this.activeSession)
+      return 'Automatic time tracking'
+
+    const parts = []
+
+    // Přidáme commit zprávu na začátek, pokud existuje
+    if (commitMessage) {
+      parts.push(`Commit: ${commitMessage}`)
+    }
+
+    // Přidáme čas v IDE
+    parts.push(`IDE: ${Math.floor(this.activeSession.vsCodeTime / 60)} min`)
+
+    // Přidáme čas v prohlížeči
+    parts.push(`Browser: ${Math.floor(this.activeSession.browserTime / 60)} min`)
+
+    // Přidáme statistiky kódu, pokud existují
+    if (this.activeSession.filesChanged) {
+      parts.push(`Files: ${this.activeSession.filesChanged}`)
+    }
+
+    if (this.activeSession.linesAdded) {
+      parts.push(`Added: ${this.activeSession.linesAdded} lines`)
+    }
+
+    if (this.activeSession.linesRemoved) {
+      parts.push(`Removed: ${this.activeSession.linesRemoved} lines`)
+    }
+
+    return parts.join(' | ')
+  }
+
+  private async endSession(commitMessage?: string): Promise<void> {
+    if (!this.activeSession)
+      return
+
+    // Zrušíme plánovanou kontrolu neaktivity
+    if (this.inactivityTimeoutId) {
+      clearTimeout(this.inactivityTimeoutId)
+      this.inactivityTimeoutId = null
+    }
+
+    // Formátujeme popis pro time entry, předáváme případnou commit zprávu
+    const description = this.formatSessionDescription(commitMessage)
+
+    // Aktualizujeme popis time entry a zároveň ho ukončíme
+    await this.togglService.updateTimeEntry(
+      this.activeSession.sessionId,
+      {
+        description,
+        stop: new Date().toISOString(),
+      },
+    )
+
+    // Resetujeme aktivní session
+    this.activeSession = null
   }
 }
 
-// Exportujeme instanci služby
-export const timeTrackingService = new TimeTrackingService()
+export const timeTrackingService = new TimeTrackingService(togglService)

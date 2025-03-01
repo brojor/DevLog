@@ -2,12 +2,12 @@
 export interface Heartbeat {
   timestamp: number
   source: 'vscode' | 'chrome'
-  // Základní informace, které rozšíříme později podle potřeby
   projectName?: string
 }
 
-// Typy pro Git commit
-export interface CommitInfo {
-  message: string
+export interface CodeStats {
+  filesChanged: number
+  linesAdded: number
+  linesRemoved: number
   timestamp: number
 }

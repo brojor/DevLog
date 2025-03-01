@@ -16,11 +16,15 @@ export const config = {
     apiUrl: 'https://api.track.toggl.com/api/v9',
     apiToken: env.TOGGL_API_TOKEN || '',
     workspaceId: env.TOGGL_WORKSPACE_ID || '',
+    projectIdsMap: {
+      'knihozrout': 209468968,
+      'toggl-auto-tracker': 209496908,
+    },
   },
 
   // Nastavení aplikace
   app: {
-    heartbeatInterval: 30, // v sekundách
+    heartbeatInterval: 5, // v sekundách
     inactivityTimeout: 120, // v sekundách, ukončí time entry po 2 minutách neaktivity
   },
 }

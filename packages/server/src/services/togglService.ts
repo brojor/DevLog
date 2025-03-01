@@ -1,9 +1,10 @@
-import type { TimeEntry } from '../types'
+// import type { TimeEntry } from '../types'
+import type { TimeEntryRequest, TimeEntryResponse } from '../types'
 import { Buffer } from 'node:buffer'
 import { config } from '../config'
 import { logger } from '../config/logger'
 
-class TogglService {
+export class TogglService {
   private apiUrl: string
   private apiToken: string
   private workspaceId: string
@@ -22,111 +23,65 @@ class TogglService {
   }
 
   // Vytvoří nový time entry
-  async createTimeEntry(description: string = 'Working'): Promise<TimeEntry | null> {
+  async createTimeEntry({ start, description, projectName }: { start: number, description: string, projectName?: string }): Promise<number | undefined> {
     try {
-      const startTime = new Date().toISOString()
-
       const response = await fetch(`${this.apiUrl}/workspaces/${this.workspaceId}/time_entries`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
-          description,
+          start: new Date(start).toISOString(),
           workspace_id: Number(this.workspaceId),
-          start: startTime,
+          project_id: this.getProjectId(projectName),
+          description,
           created_with: 'Toggl Auto Tracker',
           duration: -1,
-        }),
+        } as TimeEntryRequest),
       })
 
       if (!response.ok) {
         const errorText = await response.text()
         logger.error({ statusCode: response.status, error: errorText }, 'Chyba při vytváření time entry')
-        return null
       }
 
-      const timeEntry = await response.json() as TimeEntry
+      const timeEntry = await response.json() as TimeEntryResponse
       logger.info({ timeEntryId: timeEntry.id, description }, 'Vytvořen nový time entry')
-      return timeEntry
+      return timeEntry.id
     }
     catch (error) {
       logger.error({ error }, 'Chyba při komunikaci s Toggl API')
-      return null
     }
   }
 
   // Aktualizuje existující time entry
-  async updateTimeEntry(id: number, data: Partial<TimeEntry>): Promise<TimeEntry | null> {
+  async updateTimeEntry(id: number, data: { description?: string, stop?: string, projectName?: string }): Promise<void> {
     try {
       const response = await fetch(`${this.apiUrl}/workspaces/${this.workspaceId}/time_entries/${id}`, {
         method: 'PUT',
         headers: this.headers,
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          description: data.description,
+          stop: data.stop,
+          project_id: this.getProjectId(data.projectName),
+        }),
       })
 
       if (!response.ok) {
         const errorText = await response.text()
         logger.error({ statusCode: response.status, timeEntryId: id, error: errorText }, 'Chyba při aktualizaci time entry')
-        return null
       }
 
-      const timeEntry = await response.json() as TimeEntry
       logger.info({ timeEntryId: id, data }, 'Time entry aktualizován')
-      return timeEntry
     }
     catch (error) {
       logger.error({ error, timeEntryId: id }, 'Chyba při komunikaci s Toggl API')
-      return null
     }
   }
 
-  // Ukončí time entry
-  async stopTimeEntry(id: number): Promise<TimeEntry | null> {
-    try {
-      const response = await fetch(`${this.apiUrl}/workspaces/${this.workspaceId}/time_entries/${id}/stop`, {
-        method: 'PATCH',
-        headers: this.headers,
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        logger.error({ statusCode: response.status, timeEntryId: id, error: errorText }, 'Chyba při ukončování time entry')
-        return null
-      }
-
-      const timeEntry = await response.json() as TimeEntry
-      logger.info({ timeEntryId: id }, 'Time entry ukončen')
-      return timeEntry
-    }
-    catch (error) {
-      logger.error({ error, timeEntryId: id }, 'Chyba při komunikaci s Toggl API')
-      return null
-    }
-  }
-
-  // Získá aktuální běžící time entry, pokud existuje
-  async getCurrentTimeEntry(): Promise<TimeEntry | null> {
-    try {
-      const response = await fetch(`${this.apiUrl}/me/time_entries/current`, {
-        method: 'GET',
-        headers: this.headers,
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        logger.error({ statusCode: response.status, error: errorText }, 'Chyba při získávání aktuálního time entry')
-        return null
-      }
-
-      const data = await response.json() as { data: TimeEntry }
-      logger.debug({ currentTimeEntry: data.data }, 'Získán aktuální time entry')
-      return data.data || null // Toggl API vrací objekt s property "data"
-    }
-    catch (error) {
-      logger.error({ error }, 'Chyba při komunikaci s Toggl API')
-      return null
-    }
+  private getProjectId(projectName?: string): number | undefined {
+    return projectName && projectName in config.toggl.projectIdsMap
+      ? config.toggl.projectIdsMap[projectName as keyof typeof config.toggl.projectIdsMap]
+      : undefined
   }
 }
 
-// Exportujeme instanci služby pro použití v aplikaci
 export const togglService = new TogglService()
