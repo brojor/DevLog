@@ -1,6 +1,6 @@
 import type { Heartbeat } from '@toggl-auto-tracker/shared'
+import type { ApiClient } from './ApiClient'
 import * as vscode from 'vscode'
-import { ApiClient } from './ApiClient'
 import { ProjectInfoProvider } from './ProjectInfoProvider'
 
 /**
@@ -15,10 +15,10 @@ export class ActivityTracker {
   private apiClient: ApiClient
   private isPaused: boolean = false
 
-  constructor() {
+  constructor(apiClient: ApiClient) {
     this.lastActivity = Date.now()
     this.lastSentActivity = this.lastActivity
-    this.apiClient = new ApiClient()
+    this.apiClient = apiClient
   }
 
   /**

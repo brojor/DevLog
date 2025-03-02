@@ -1,4 +1,4 @@
-import type { Heartbeat } from '@toggl-auto-tracker/shared'
+import type { CodeStats, Heartbeat } from '@toggl-auto-tracker/shared'
 import * as vscode from 'vscode'
 
 /**
@@ -6,6 +6,11 @@ import * as vscode from 'vscode'
  */
 export class ApiClient {
   private readonly serverUrl: string
+  public sessionId: number | null = null
+
+  // Event emitter pro oznamování změn sessionId
+  private readonly _onSessionChange = new vscode.EventEmitter<number>()
+  public readonly onSessionChange = this._onSessionChange.event
 
   constructor() {
     // Získáme URL serveru z konfigurace
@@ -30,7 +35,7 @@ export class ApiClient {
   /**
    * Odesílá heartbeat na server
    */
-  public async sendHeartbeat(data: Heartbeat): Promise<boolean> {
+  public async sendHeartbeat(data: Heartbeat): Promise<number | null> {
     try {
       console.log('ApiClient: Odesílání heartbeatu na server', data)
 
@@ -46,12 +51,56 @@ export class ApiClient {
         throw new Error(`Server odpověděl s chybou: ${response.status} ${response.statusText}`)
       }
 
-      console.log('ApiClient: Heartbeat úspěšně odeslán')
-      return true
+      return await this.processResponse(response, 'Heartbeat')
     }
     catch (error) {
       console.error('ApiClient: Chyba při odesílání heartbeatu:', error)
-      return false
+      return null
     }
+  }
+
+  /**
+   * Odesílá statistiky o změnách v kódu na server
+   */
+  public async sendStats(stats: CodeStats): Promise<number | null> {
+    try {
+      console.log('ApiClient: Odesílání statistik na server', stats)
+
+      const response = await fetch(`${this.serverUrl}/api/stats`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(stats),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server odpověděl s chybou: ${response.status} ${response.statusText}`)
+      }
+
+      return await this.processResponse(response, 'Statistiky')
+    }
+    catch (error) {
+      console.error('ApiClient: Chyba při odesílání statistik:', error)
+      return null
+    }
+  }
+
+  /**
+   * Zpracuje odpověď ze serveru a extrahuje sessionId
+   * @private
+   */
+  private async processResponse(response: Response, actionName: string): Promise<number> {
+    const responseData = await response.json() as { sessionId: number }
+    const newSessionId = responseData.sessionId
+
+    // Pokud se sessionId změnilo, aktualizujeme ho a emitujeme událost
+    if (newSessionId !== this.sessionId) {
+      this.sessionId = newSessionId
+      this._onSessionChange.fire(newSessionId)
+    }
+
+    console.log(`ApiClient: ${actionName} úspěšně odesláno, sessionId:`, newSessionId)
+    return newSessionId
   }
 }

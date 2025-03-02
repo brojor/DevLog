@@ -1,9 +1,15 @@
 import * as vscode from 'vscode'
 import { ActivityTracker } from './ActivityTracker'
+import { ApiClient } from './ApiClient'
+import { GitStashManager } from './GitStashManager'
+import { SessionManager } from './SessionManager'
 import { StatusBarController } from './StatusBarItem'
 
 let activityTracker: ActivityTracker | undefined
 let statusBarController: StatusBarController | undefined
+let apiClient: ApiClient | undefined
+let gitStashManager: GitStashManager | undefined
+let sessionManager: SessionManager | undefined
 
 /**
  * Tato metoda je volána při aktivaci rozšíření
@@ -11,8 +17,13 @@ let statusBarController: StatusBarController | undefined
 export function activate(context: vscode.ExtensionContext) {
   console.log('Toggl Auto Tracker rozšíření bylo aktivováno!')
 
+  // Inicializace komponent
+  apiClient = new ApiClient()
+  gitStashManager = new GitStashManager()
+  sessionManager = new SessionManager(apiClient, gitStashManager)
+
   // Inicializace a spuštění sledovače aktivity
-  activityTracker = new ActivityTracker()
+  activityTracker = new ActivityTracker(apiClient)
   activityTracker.start()
 
   // Vytvoření a inicializace status bar kontroleru
@@ -35,18 +46,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
   })
 
-  // Přidáme příkaz do seznamu subscriptions
-  context.subscriptions.push(togglePauseCommand)
-
-  // Přidáme sledovač aktivity do subscriptions
-  if (activityTracker) {
-    context.subscriptions.push(activityTracker)
-  }
-
-  // Přidáme status bar kontroler do subscriptions
-  if (statusBarController) {
-    context.subscriptions.push(statusBarController)
-  }
+  // Přidáme komponenty do subscriptions
+  context.subscriptions.push(
+    togglePauseCommand,
+    activityTracker,
+    statusBarController,
+    sessionManager,
+  )
 }
 
 /**
@@ -61,6 +67,19 @@ export function deactivate() {
   if (activityTracker) {
     activityTracker.dispose()
     activityTracker = undefined
+  }
+
+  if (sessionManager) {
+    sessionManager.dispose()
+    sessionManager = undefined
+  }
+
+  if (gitStashManager) {
+    gitStashManager = undefined
+  }
+
+  if (apiClient) {
+    apiClient = undefined
   }
 
   console.log('Toggl Auto Tracker rozšíření bylo deaktivováno.')
