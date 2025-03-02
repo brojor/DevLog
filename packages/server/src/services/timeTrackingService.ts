@@ -181,7 +181,7 @@ export class TimeTrackingService {
       this.activeSession.sessionId,
       {
         description,
-        stop: new Date().toISOString(),
+        stop: new Date(this.activeSession.lastActivity).toISOString(),
       },
     )
 
