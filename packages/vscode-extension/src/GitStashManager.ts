@@ -1,5 +1,5 @@
+import { exec } from 'node:child_process'
 import * as vscode from 'vscode'
-
 /**
  * Třída pro správu Git stash hashů
  */
@@ -11,50 +11,26 @@ export class GitStashManager {
   }
 
   /**
-   * Spustí příkaz v terminálu a vrací jeho výstup
+   * Spustí příkaz pomocí child_process a vrací jeho výstup
    * @param command Příkaz k spuštění
    * @param cwd Pracovní adresář
    * @returns Promise s výstupem příkazu
    */
   private async executeCommand(command: string, cwd: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      const terminal = vscode.window.createTerminal({
-        name: 'Git Command',
-        cwd,
-        hideFromUser: true,
-      })
-
-      // Vytvoříme dočasný soubor pro uložení výstupu
-      const tempFile = vscode.Uri.joinPath(vscode.workspace.workspaceFolders![0].uri, '.git', 'vscode-git-output.tmp')
-
-      // Příkaz, který spustí požadovaný příkaz a uloží výstup do souboru
-      const fullCommand = `${command} > "${tempFile.fsPath}" 2>&1 || echo "ERROR" >> "${tempFile.fsPath}"`
-
-      terminal.sendText(fullCommand)
-      terminal.sendText('exit')
-
-      // Počkáme, než se terminál zavře a pak přečteme výstup
-      const disposable = vscode.window.onDidCloseTerminal(async (closedTerminal) => {
-        if (closedTerminal === terminal) {
-          disposable.dispose()
-          try {
-            const output = await vscode.workspace.fs.readFile(tempFile)
-            const text = new TextDecoder().decode(output)
-
-            // Smažeme dočasný soubor
-            await vscode.workspace.fs.delete(tempFile)
-
-            if (text.includes('ERROR')) {
-              reject(new Error(`Command failed: ${command}`))
-            }
-            else {
-              resolve(text.trim())
-            }
-          }
-          catch (error) {
-            reject(error)
-          }
+      exec(command, { cwd }, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`GitStashManager: Chyba při spuštění příkazu: ${command}`, error)
+          console.error(`stderr: ${stderr}`)
+          reject(new Error(`Command failed: ${command}\n${stderr}`))
+          return
         }
+
+        if (stderr && stderr.trim() !== '') {
+          console.warn(`GitStashManager: Příkaz vrátil warning: ${stderr}`)
+        }
+
+        resolve(stdout.trim())
       })
     })
   }
@@ -76,34 +52,26 @@ export class GitStashManager {
       console.log(`GitStashManager: Používám workspace ${workspacePath}`)
 
       // Spustíme příkaz git stash create
-      let output: string
       try {
-        output = await this.executeCommand('git stash create', workspacePath)
-      }
-      catch (error) {
-        console.error('GitStashManager: Chyba při vytváření stash hashe:', error)
-        return null
-      }
+        const output = await this.executeCommand('git stash create', workspacePath)
 
-      // Pokud příkaz vrátil prázdný výstup, znamená to, že nebyly žádné změny k uložení
-      if (!output || output.trim() === '') {
-        console.log('GitStashManager: Žádné změny k uložení do stash')
-        // V tomto případě můžeme použít HEAD jako referenční bod
-        try {
+        // Pokud příkaz vrátil prázdný výstup, použijeme HEAD jako referenční bod
+        if (!output || output === '') {
+          console.log('GitStashManager: Žádné změny k uložení do stash')
           const headHash = await this.executeCommand('git rev-parse HEAD', workspacePath)
-          this.stashHash = headHash.trim()
+          this.stashHash = headHash
           console.log(`GitStashManager: Použití HEAD jako referenčního bodu: ${this.stashHash}`)
           return this.stashHash
         }
-        catch (error) {
-          console.error('GitStashManager: Chyba při získávání HEAD:', error)
-          return null
-        }
-      }
 
-      this.stashHash = output.trim()
-      console.log(`GitStashManager: Vytvořen nový stash hash: ${this.stashHash}`)
-      return this.stashHash
+        this.stashHash = output
+        console.log(`GitStashManager: Vytvořen nový stash hash: ${this.stashHash}`)
+        return this.stashHash
+      }
+      catch (error) {
+        console.error('GitStashManager: Chyba při práci s Git:', error)
+        return null
+      }
     }
     catch (error) {
       console.error('GitStashManager: Chyba při vytváření stash hashe:', error)
