@@ -9,6 +9,8 @@ Toggl Auto Tracker je automatizované řešení pro sledování času ve VS Code
 - **Automatické sledování aktivity** v editoru
 - **Detekce projektu** z konfiguračních souborů
 - **Heartbeat mechanismus** pro přesné měření času
+- **Statistiky o změnách v kódu** (změněné soubory, přidané/odebrané řádky)
+- **Git integrace** pro sledování změn bez narušení pracovního adresáře
 - **Minimální zásah do workflow vývojáře**
 - **Pozastavení sledování** jedním kliknutím
 
@@ -17,6 +19,7 @@ Toggl Auto Tracker je automatizované řešení pro sledování času ve VS Code
 - VS Code verze 1.60.0 nebo vyšší
 - Node.js verze 20.10.0 nebo vyšší
 - Běžící Toggl Auto Tracker server
+- Git nainstalovaný a dostupný v PATH
 
 ## 📦 Instalace
 
@@ -40,9 +43,14 @@ V nastavení VS Code můžete upravit:
 - **Status Bar**: Kliknutím pozastavíte/obnovíte sledování
 - Příkaz: `Toggl Auto Tracker: Toggle Pause`
 
-## 📋 Licence
+## 📊 Sledování statistik
 
-Projekt je licencován pod MIT licencí. Úplné znění licence naleznete v souboru [LICENSE](https://github.com/brojor/toggl-auto-tracker/blob/main/packages/vscode-extension/LICENSE.md).
+Rozšíření automaticky sleduje vaši aktivitu a sbírá tyto statistiky:
+- Počet změněných souborů
+- Počet přidaných řádků kódu
+- Počet odebraných řádků kódu
+
+Statistiky jsou periodicky odesílány na server, který je zahrnuje do popisků time entries v Toggl.
 
 ## 🔗 Další komponenty
 
