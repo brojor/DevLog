@@ -3,6 +3,7 @@ import { ActivityTracker } from './ActivityTracker'
 import { ApiClient } from './ApiClient'
 import { GitStashManager } from './GitStashManager'
 import { SessionManager } from './SessionManager'
+import { StatsReporter } from './StatsReporter'
 import { StatusBarController } from './StatusBarItem'
 
 let activityTracker: ActivityTracker | undefined
@@ -46,12 +47,17 @@ export function activate(context: vscode.ExtensionContext) {
     }
   })
 
+  // Inicializace a spuštění reporteru statistik
+  const statsReporter = new StatsReporter(activityTracker, gitStashManager, apiClient)
+  statsReporter.start()
+
   // Přidáme komponenty do subscriptions
   context.subscriptions.push(
     togglePauseCommand,
     activityTracker,
     statusBarController,
     sessionManager,
+    statsReporter,
   )
 }
 

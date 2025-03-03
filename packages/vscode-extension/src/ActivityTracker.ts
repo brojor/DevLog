@@ -139,6 +139,13 @@ export class ActivityTracker {
   }
 
   /**
+   * Vrátí čas poslední aktivity
+   */
+  public get lastActivityTime(): number {
+    return this.lastActivity
+  }
+
+  /**
    * Zastaví sledování aktivity uživatele
    */
   public dispose(): void {
