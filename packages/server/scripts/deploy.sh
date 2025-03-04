@@ -46,7 +46,7 @@ ssh $SERVER_HOST "mkdir -p $SERVER_PATH/dist $SERVER_PATH/logs"
 
 # Synchronizace souborů v jednom kroku
 rsync -rtvz --delete dist/ $SERVER_HOST:$SERVER_PATH/dist/
-rsync -rtvz $TEMP_DIR/package.json ecosystem.config.cjs $TEMP_DIR/*.tgz $SERVER_HOST:$SERVER_PATH/
+rsync -rtvz $TEMP_DIR/package.json ecosystem.config.cjs $TEMP_DIR/*.tgz .env $SERVER_HOST:$SERVER_PATH/
 
 # 5. Instalace závislostí a restart aplikace
 echo_step "Instalace závislostí a restart aplikace..."
