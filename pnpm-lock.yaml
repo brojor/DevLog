@@ -69,6 +69,9 @@ importers:
       pino-http:
         specifier: ^10.4.0
         version: 10.4.0
+      pino-pretty:
+        specifier: ^13.0.0
+        version: 13.0.0
     devDependencies:
       '@types/express':
         specifier: ^4.17.21
@@ -76,9 +79,6 @@ importers:
       '@types/node':
         specifier: ^22.13.5
         version: 22.13.5
-      pino-pretty:
-        specifier: ^13.0.0
-        version: 13.0.0
       tsx:
         specifier: ^4.19.3
         version: 4.19.3
