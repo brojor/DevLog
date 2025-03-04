@@ -1,16 +1,43 @@
+import { randomUUID } from 'node:crypto'
 import pinoHttp from 'pino-http'
 import { logger } from '../config/logger'
 
 // Vytvoření middleware pro HTTP logování
 export const httpLogger = pinoHttp({
   logger,
-  customProps: () => {
-    return {
-      service: 'toggl-auto-tracker-server',
-    }
-  },
   // Generuje unikátní ID pro každý požadavek
   genReqId: (req) => {
-    return req.id || `req-${Math.random().toString(36).substring(2, 10)}`
+    return req.id || randomUUID()
   },
+  // Přizpůsobení logovaných atributů
+  customProps: (req) => {
+    return {
+      userAgent: req.headers['user-agent'],
+      remoteAddress: req.socket.remoteAddress,
+    }
+  },
+  // Úprava úrovně logování na základě stavových kódů HTTP
+  customLogLevel: (req, res, err) => {
+    if (err || res.statusCode >= 500)
+      return 'error'
+    if (res.statusCode >= 400)
+      return 'warn'
+    return 'info'
+  },
+  // Úprava serializace požadavku včetně těla
+  serializers: {
+    req: (req) => {
+      // Základní informace o požadavku
+      const reqInfo = {
+        id: req.id,
+        method: req.method,
+        url: req.url,
+        body: req.raw?.body,
+      }
+
+      return reqInfo
+    },
+  },
+  // Automaticky logovat při dokončení odpovědi
+  autoLogging: true,
 })
