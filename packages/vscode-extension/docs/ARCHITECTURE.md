@@ -94,6 +94,8 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 
 **Klíčové funkce:**
 - Implementuje periodické odesílání statistik pomocí `setInterval`
+- Sleduje události uložení souborů (`onDidSaveTextDocument`)
+- Odesílá statistiky pouze když došlo k uložení souboru od posledního odeslání
 - Kontroluje aktivitu uživatele před odesláním statistik
 - Využívá `GitStashManager` pro získání aktuálních statistik
 - Využívá `ApiClient` pro odeslání statistik na server
@@ -102,8 +104,13 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 **Hlavní metody:**
 - `start()`: Spustí pravidelné odesílání statistik
 - `stop()`: Zastaví pravidelné odesílání statistik
-- `reportStats()`: Získá a odešle statistiky, pokud je uživatel aktivní
-- `forceReportStats()`: Okamžitě odešle statistiky bez ohledu na interval (používá se např. při commitu)
+- `reportStats()`: Získá a odešle statistiky, pokud je uživatel aktivní a došlo k uložení souboru
+- `forceReportStats()`: Okamžitě odešle statistiky bez ohledu na interval a uložení souboru (používá se např. při commitu)
+
+**Optimalizace:**
+- Provádí náročnou operaci git diff pouze když je skutečně potřeba (po uložení souboru)
+- Sleduje příznak `fileWasSaved`, který indikuje, zda došlo k uložení souboru od posledního odeslání statistik
+- Šetří systémové zdroje vynecháním zbytečných git diff operací, když se kód nezměnil
 
 ### 6. SessionManager
 
@@ -159,13 +166,22 @@ Při pozastavení:
 
 ### Sledování statistik o změnách v kódu
 
-Rozšíření pravidelně sbírá a odesílá statistiky o změnách v kódu:
+Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním způsobem:
 1. Při inicializaci vytvoří referenční bod pomocí Git stash hashe
-2. V pravidelných intervalech (každých 60 sekund) získává statistiky o změnách
-3. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
-4. Statistiky jsou odesílány na server pouze pokud je uživatel aktivní
-5. Statistiky jsou také okamžitě aktualizovány po každém Git commitu
-6. Server používá tyto statistiky k obohacení popisků time entries v Toggl
+2. Nastaví pravidelný interval (každých 60 sekund) pro potenciální odeslání statistik
+3. Sleduje události uložení souborů a nastavuje příznak při každém uložení
+4. Statistiky skutečně získává a odesílá pouze když:
+   - Uplynul nastavený interval
+   - Uživatel je aktivní
+   - Od posledního odeslání byl uložen alespoň jeden soubor (nebo je vyžádáno vynucené odeslání)
+5. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
+6. Statistiky jsou také okamžitě aktualizovány po každém Git commitu nezávisle na intervalu
+7. Server používá tyto statistiky k obohacení popisků time entries v Toggl
+
+Tato optimalizovaná implementace zajišťuje:
+- Minimální zatížení systému (git diff se provádí pouze když je potřeba)
+- Přesné statistiky odrážející skutečné změny v kódu
+- Spolehlivé poskytování dat serveru pro vytváření informativních popisků
 
 ## Konfigurace
 
