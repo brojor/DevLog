@@ -31,7 +31,7 @@
       "properties": {
         "togglAutoTracker.serverUrl": {
           "type": "string",
-          "default": "http://localhost:3000",
+          "default": "http://n40l:3000",
           "description": "URL adresa pro Toggl Auto Tracker server"
         }
       }
