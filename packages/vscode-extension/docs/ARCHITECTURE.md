@@ -2,7 +2,7 @@
 
 ## Přehled
 
-VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu.
+VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu. Nově také sleduje Git commity a automaticky aktualizuje statistiky při každém commitu.
 
 ## Adresářová struktura
 
@@ -12,10 +12,12 @@ packages/vscode-extension/
 │   ├── extension.ts         # Hlavní vstupní bod rozšíření
 │   ├── ActivityTracker.ts   # Třída pro sledování aktivity uživatele
 │   ├── ApiClient.ts         # Třída pro komunikaci se serverem
+│   ├── GitCommitTracker.ts  # Třída pro sledování Git commitů
 │   ├── GitStashManager.ts   # Třída pro správu Git stash hashů a statistik kódu
 │   ├── StatsReporter.ts     # Třída pro pravidelné odesílání statistik
 │   ├── SessionManager.ts    # Třída pro správu sessions
-│   └── StatusBarItem.ts     # Třída pro ovládání položky ve status baru
+│   ├── StatusBarItem.ts     # Třída pro ovládání položky ve status baru
+│   └── git.d.ts             # Typové definice pro Git API
 ├── .vscodeignore            # Soubory ignorované při publikování
 ├── package.json             # Metadata a konfigurace rozšíření
 ├── tsconfig.json            # Konfigurace TypeScript
@@ -55,7 +57,22 @@ Třída `ApiClient` zajišťuje komunikaci s centrálním serverem.
 - Odesílá data pomocí HTTP POST požadavku
 - Ošetřuje chyby při komunikaci se serverem
 
-### 3. GitStashManager
+### 3. GitCommitTracker
+
+Třída `GitCommitTracker` sleduje Git commity ve všech otevřených repozitářích a vyvolává aktualizaci statistik při každém commitu.
+
+**Klíčové funkce:**
+- Integruje se s Git rozšířením VS Code
+- Sleduje všechny otevřené Git repozitáře
+- Detekuje commit události a automaticky aktualizuje statistiky
+- Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
+
+**Implementační detaily:**
+- Používá oficiální Git API poskytované VS Code (`vscode.git`)
+- Registruje listenery pro události `onDidOpenRepository` a `onDidCommit`
+- Při commitu volá metodu `forceReportStats()` na `StatsReporter`
+
+### 4. GitStashManager
 
 Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získávání statistik o změnách v kódu.
 
@@ -71,7 +88,7 @@ Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získáv
 - Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
 - Při absenci změn používá HEAD jako referenční bod
 
-### 4. StatsReporter
+### 5. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
 
@@ -82,7 +99,13 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 - Využívá `ApiClient` pro odeslání statistik na server
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
-### 5. SessionManager
+**Hlavní metody:**
+- `start()`: Spustí pravidelné odesílání statistik
+- `stop()`: Zastaví pravidelné odesílání statistik
+- `reportStats()`: Získá a odešle statistiky, pokud je uživatel aktivní
+- `forceReportStats()`: Okamžitě odešle statistiky bez ohledu na interval (používá se např. při commitu)
+
+### 6. SessionManager
 
 Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při prvním spuštění nebo po dlouhé neaktivitě.
 
@@ -91,7 +114,7 @@ Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváře
 - Koordinace vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
-### 6. StatusBarController
+### 7. StatusBarController
 
 Třída `StatusBarController` zobrazuje aktuální stav sledování ve status baru VS Code.
 
@@ -108,6 +131,14 @@ Rozšíření sleduje aktivitu uživatele registrováním posluchačů na různ�
 1. Aktualizuje čas poslední aktivity
 2. Pokud uplynul dostatečný čas od posledního odeslání, odešle heartbeat na server
 3. Loguje aktivitu do konzole pro snazší debugging
+
+### Sledování Git commitů
+
+Rozšíření nyní automaticky sleduje Git commity v otevřených repozitářích:
+1. Při inicializaci se připojí k VS Code Git rozšíření
+2. Registruje listenery pro všechny otevřené repozitáře
+3. Po každém commitu okamžitě aktualizuje a odesílá aktuální statistiky kódu
+4. Tím zajišťuje přesné zachycení stavu projektu po každém commitu
 
 ### Získávání informací o projektu
 
@@ -133,7 +164,8 @@ Rozšíření pravidelně sbírá a odesílá statistiky o změnách v kódu:
 2. V pravidelných intervalech (každých 60 sekund) získává statistiky o změnách
 3. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
 4. Statistiky jsou odesílány na server pouze pokud je uživatel aktivní
-5. Server používá tyto statistiky k obohacení popisků time entries v Toggl
+5. Statistiky jsou také okamžitě aktualizovány po každém Git commitu
+6. Server používá tyto statistiky k obohacení popisků time entries v Toggl
 
 ## Konfigurace
 
@@ -146,6 +178,18 @@ Rozšíření lze konfigurovat přes nastavení VS Code:
 ```
 
 Tato hodnota určuje URL centrálního serveru, na který jsou odesílány heartbeaty a statistiky.
+
+## Závislosti na dalších rozšířeních
+
+Rozšíření nyní vyžaduje pro svůj plnohodnotný provoz přítomnost oficiálního Git rozšíření VS Code:
+
+```json
+"extensionDependencies": [
+  "vscode.git"
+]
+```
+
+Tato závislost zajišťuje, že Git rozšíření bude nainstalováno a aktivováno před Toggl Auto Tracker rozšířením.
 
 ## Příkazy
 
@@ -177,6 +221,7 @@ Vytvoří optimalizovaný build rozšíření a zabalí ho do VSIX souboru, kter
 
 - TypeScript pro typově bezpečný kód
 - VS Code API pro interakci s editorem
+- VS Code Git API pro sledování Git událostí
 - Vite pro bundlování a optimalizaci kódu
 - Fetch API pro komunikaci se serverem
 - Node.js child_process pro interakci s Gitem
