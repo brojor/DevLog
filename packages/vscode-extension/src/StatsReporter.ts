@@ -33,6 +33,15 @@ export class StatsReporter implements vscode.Disposable {
   }
 
   /**
+   * Okamžitě odešle statistiky bez ohledu na interval
+   * Používá se například při commitu
+   */
+  public async forceReportStats(): Promise<void> {
+    console.log('StatsReporter: Vynucené odeslání statistik')
+    await this.reportStats()
+  }
+
+  /**
    * Získá a odešle statistiky, pokud je uživatel aktivní
    */
   private async reportStats(): Promise<void> {

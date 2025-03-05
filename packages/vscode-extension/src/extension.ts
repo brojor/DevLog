@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { ActivityTracker } from './ActivityTracker'
 import { ApiClient } from './ApiClient'
+import { GitCommitTracker } from './GitCommitTracker'
 import { GitStashManager } from './GitStashManager'
 import { SessionManager } from './SessionManager'
 import { StatsReporter } from './StatsReporter'
@@ -11,6 +12,8 @@ let statusBarController: StatusBarController | undefined
 let apiClient: ApiClient | undefined
 let gitStashManager: GitStashManager | undefined
 let sessionManager: SessionManager | undefined
+let statsReporter: StatsReporter | undefined
+let gitCommitTracker: GitCommitTracker | undefined
 
 /**
  * Tato metoda je volána při aktivaci rozšíření
@@ -48,8 +51,11 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   // Inicializace a spuštění reporteru statistik
-  const statsReporter = new StatsReporter(activityTracker, gitStashManager, apiClient)
+  statsReporter = new StatsReporter(activityTracker, gitStashManager, apiClient)
   statsReporter.start()
+
+  // Inicializace sledovače git commitů
+  gitCommitTracker = new GitCommitTracker(statsReporter)
 
   // Přidáme komponenty do subscriptions
   context.subscriptions.push(
@@ -58,6 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarController,
     sessionManager,
     statsReporter,
+    gitCommitTracker,
   )
 }
 
@@ -80,12 +87,22 @@ export function deactivate() {
     sessionManager = undefined
   }
 
+  if (statsReporter) {
+    statsReporter.dispose()
+    statsReporter = undefined
+  }
+
   if (gitStashManager) {
     gitStashManager = undefined
   }
 
   if (apiClient) {
     apiClient = undefined
+  }
+
+  if (gitCommitTracker) {
+    gitCommitTracker.dispose()
+    gitCommitTracker = undefined
   }
 
   console.log('Toggl Auto Tracker rozšíření bylo deaktivováno.')
