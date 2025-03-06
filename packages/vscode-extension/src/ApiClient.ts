@@ -87,6 +87,43 @@ export class ApiClient {
   }
 
   /**
+   * Odesílá informace o commitu včetně statistik kódu na server
+   */
+  public async sendCommitInfo(
+    message: string,
+    timestamp: number,
+    stats: CodeStats,
+  ): Promise<number | null> {
+    try {
+      const commitData = {
+        message,
+        timestamp,
+        stats,
+      }
+
+      console.log('ApiClient: Odesílání commit info na server', commitData)
+
+      const response = await fetch(`${this.serverUrl}/api/commit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(commitData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server odpověděl s chybou: ${response.status} ${response.statusText}`)
+      }
+
+      return await this.processResponse(response, 'Commit info')
+    }
+    catch (error) {
+      console.error('ApiClient: Chyba při odesílání commit info:', error)
+      return null
+    }
+  }
+
+  /**
    * Zpracuje odpověď ze serveru a extrahuje sessionId
    * @private
    */

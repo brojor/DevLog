@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import { ActivityTracker } from './ActivityTracker'
 import { ApiClient } from './ApiClient'
 import { GitStashManager } from './GitStashManager'
+import { GitSupportManager } from './GitSupportManager'
 import { SessionManager } from './SessionManager'
 import { StatsReporter } from './StatsReporter'
 import { StatusBarController } from './StatusBarItem'
@@ -12,6 +13,7 @@ let apiClient: ApiClient | undefined
 let gitStashManager: GitStashManager | undefined
 let sessionManager: SessionManager | undefined
 let statsReporter: StatsReporter | undefined
+let gitSupportManager: GitSupportManager | undefined
 
 /**
  * Tato metoda je volána při aktivaci rozšíření
@@ -52,6 +54,12 @@ export function activate(context: vscode.ExtensionContext) {
   statsReporter = new StatsReporter(activityTracker, gitStashManager, apiClient)
   statsReporter.start()
 
+  // Inicializace podpory pro Git commity
+  gitSupportManager = new GitSupportManager(apiClient, gitStashManager)
+  gitSupportManager.initialize().catch(err =>
+    console.error('Chyba při inicializaci Git podpory:', err),
+  )
+
   // Přidáme komponenty do subscriptions
   context.subscriptions.push(
     togglePauseCommand,
@@ -59,6 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarController,
     sessionManager,
     statsReporter,
+    gitSupportManager,
   )
 }
 
@@ -66,6 +75,11 @@ export function activate(context: vscode.ExtensionContext) {
  * Tato metoda je volána při deaktivaci rozšíření
  */
 export function deactivate() {
+  if (gitSupportManager) {
+    gitSupportManager.dispose()
+    gitSupportManager = undefined
+  }
+
   if (statusBarController) {
     statusBarController.dispose()
     statusBarController = undefined
