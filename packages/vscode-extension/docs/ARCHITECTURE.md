@@ -2,7 +2,7 @@
 
 ## Přehled
 
-VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu.
+VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu. Nově také sleduje Git commity a automaticky aktualizuje statistiky při každém commitu.
 
 ## Adresářová struktura
 
@@ -13,6 +13,9 @@ packages/vscode-extension/
 │   ├── ActivityTracker.ts   # Třída pro sledování aktivity uživatele
 │   ├── ApiClient.ts         # Třída pro komunikaci se serverem
 │   ├── GitStashManager.ts   # Třída pro správu Git stash hashů a statistik kódu
+│   ├── GitHookManager.ts    # Třída pro instalaci Git hooků
+│   ├── CommitWatcher.ts     # Třída pro sledování Git commitů
+│   ├── GitSupportManager.ts # Třída pro koordinaci Git podpory
 │   ├── StatsReporter.ts     # Třída pro pravidelné odesílání statistik
 │   ├── SessionManager.ts    # Třída pro správu sessions
 │   └── StatusBarItem.ts     # Třída pro ovládání položky ve status baru
@@ -49,6 +52,7 @@ Třída `ApiClient` zajišťuje komunikaci s centrálním serverem.
 **Hlavní metody:**
 - `sendHeartbeat(data)`: Odesílá heartbeat data na server
 - `sendStats(data)`: Odesílá statistiky o změnách v kódu na server
+- `sendCommitInfo(message, timestamp, stats)`: Odesílá informace o commitu a statistiky kódu na server
 
 **Implementační detaily:**
 - Získává URL serveru z konfigurace rozšíření
@@ -71,7 +75,42 @@ Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získáv
 - Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
 - Při absenci změn používá HEAD jako referenční bod
 
-### 4. StatsReporter
+### 4. GitHookManager
+
+Třída `GitHookManager` je zodpovědná za instalaci a správu Git post-commit hooků v repozitáři.
+
+**Hlavní metody:**
+- `installPostCommitHook()`: Instaluje post-commit hook do repozitáře
+
+**Implementační detaily:**
+- Vytváří Git hook skripty, které ukládají commit zprávy do speciálního adresáře
+- Zachovává existující funkcionalitu hooků, pokud už existují
+- Používá jméno souboru (timestamp commitu) pro identifikaci commit zpráv
+
+### 5. CommitWatcher
+
+Třída `CommitWatcher` sleduje změny v adresáři `.git/last-commit-info` a detekuje nové commity.
+
+**Klíčové funkce:**
+- Vytváří adresář pro commit informace, pokud neexistuje
+- Sleduje vytváření nových souborů v adresáři
+- Zpracovává nové soubory, extrahuje commit zprávy a časové značky
+- Po zpracování odstraňuje soubory pro udržení čistoty
+
+**Hlavní metody:**
+- `initialize()`: Připraví adresář a spustí sledování
+- `start()`: Spustí sledování adresáře
+
+### 6. GitSupportManager
+
+Třída `GitSupportManager` koordinuje Git funkcionalitu, propojuje `GitHookManager`, `CommitWatcher` a `ApiClient`.
+
+**Klíčové funkce:**
+- Inicializuje a spravuje `GitHookManager` a `CommitWatcher`
+- Reaguje na nové commity a získává aktuální statistiky kódu
+- Odesílá commit informace a statistiky na server
+
+### 7. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
 
@@ -94,7 +133,7 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 - Sleduje příznak `fileWasSaved`, který indikuje, zda došlo k uložení souboru od posledního odeslání statistik
 - Šetří systémové zdroje vynecháním zbytečných git diff operací, když se kód nezměnil
 
-### 5. SessionManager
+### 8. SessionManager
 
 Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při prvním spuštění nebo po dlouhé neaktivitě.
 
@@ -103,7 +142,7 @@ Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváře
 - Koordinace vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
-### 6. StatusBarController
+### 9. StatusBarController
 
 Třída `StatusBarController` zobrazuje aktuální stav sledování ve status baru VS Code.
 
@@ -156,6 +195,20 @@ Tato optimalizovaná implementace zajišťuje:
 - Přesné statistiky odrážející skutečné změny v kódu
 - Spolehlivé poskytování dat serveru pro vytváření informativních popisků
 
+### Sledování Git commitů
+
+Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
+1. Při inicializaci nainstaluje post-commit hook do Git repozitáře
+2. Hook po každém commitu zapíše commit zprávu a timestamp do souboru v adresáři `.git/last-commit-info`
+3. CommitWatcher sleduje tento adresář a reaguje na vytváření nových souborů
+4. Při detekci commitu:
+   - Přečte commit zprávu ze souboru
+   - Získá timestamp z názvu souboru
+   - Získá aktuální statistiky kódu
+   - Odešle tyto informace na server
+5. Server použije tyto informace pro vytvoření nového time entry s popisem založeným na commit zprávě
+6. Tento přístup zajišťuje spolehlivou detekci pouze úspěšných commitů
+
 ## Konfigurace
 
 Rozšíření lze konfigurovat přes nastavení VS Code:
@@ -201,3 +254,5 @@ Vytvoří optimalizovaný build rozšíření a zabalí ho do VSIX souboru, kter
 - Vite pro bundlování a optimalizaci kódu
 - Fetch API pro komunikaci se serverem
 - Node.js child_process pro interakci s Gitem
+- Node.js fs/promises API pro práci se souborovým systémem
+- Git hooks pro zachycení commit událostí
