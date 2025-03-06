@@ -1,7 +1,6 @@
 import * as vscode from 'vscode'
 import { ActivityTracker } from './ActivityTracker'
 import { ApiClient } from './ApiClient'
-import { GitCommitTracker } from './GitCommitTracker'
 import { GitStashManager } from './GitStashManager'
 import { SessionManager } from './SessionManager'
 import { StatsReporter } from './StatsReporter'
@@ -13,7 +12,6 @@ let apiClient: ApiClient | undefined
 let gitStashManager: GitStashManager | undefined
 let sessionManager: SessionManager | undefined
 let statsReporter: StatsReporter | undefined
-let gitCommitTracker: GitCommitTracker | undefined
 
 /**
  * Tato metoda je volána při aktivaci rozšíření
@@ -54,9 +52,6 @@ export function activate(context: vscode.ExtensionContext) {
   statsReporter = new StatsReporter(activityTracker, gitStashManager, apiClient)
   statsReporter.start()
 
-  // Inicializace sledovače git commitů
-  gitCommitTracker = new GitCommitTracker(statsReporter)
-
   // Přidáme komponenty do subscriptions
   context.subscriptions.push(
     togglePauseCommand,
@@ -64,7 +59,6 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarController,
     sessionManager,
     statsReporter,
-    gitCommitTracker,
   )
 }
 
@@ -98,11 +92,6 @@ export function deactivate() {
 
   if (apiClient) {
     apiClient = undefined
-  }
-
-  if (gitCommitTracker) {
-    gitCommitTracker.dispose()
-    gitCommitTracker = undefined
   }
 
   console.log('Toggl Auto Tracker rozšíření bylo deaktivováno.')

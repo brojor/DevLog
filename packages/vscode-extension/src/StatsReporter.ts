@@ -49,19 +49,9 @@ export class StatsReporter implements vscode.Disposable {
   }
 
   /**
-   * Okamžitě odešle statistiky bez ohledu na interval
-   * Používá se například při commitu
+   * Získá a odešle statistiky, pokud je uživatel aktivní
    */
-  public async forceReportStats(): Promise<void> {
-    console.log('StatsReporter: Vynucené odeslání statistik')
-    await this.reportStats(true)
-  }
-
-  /**
-   * Získá a odešle statistiky, pokud je uživatel aktivní a došlo k uložení souboru
-   * @param force Vynutit odeslání statistik bez ohledu na uložení souboru
-   */
-  private async reportStats(force: boolean = false): Promise<void> {
+  private async reportStats(): Promise<void> {
     try {
       if (this.activityTracker.paused) {
         console.log('StatsReporter: Sledování aktivity je pozastaveno, přeskakuji odeslání statistik')
@@ -75,7 +65,7 @@ export class StatsReporter implements vscode.Disposable {
       }
 
       // Kontrola, zda byl soubor uložen od posledního odeslání statistik
-      if (!force && !this.fileWasSaved) {
+      if (!this.fileWasSaved) {
         console.log('StatsReporter: Od posledního odeslání nebyl uložen žádný soubor, přeskakuji odeslání statistik')
         return
       }

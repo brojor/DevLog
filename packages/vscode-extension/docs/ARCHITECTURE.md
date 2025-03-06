@@ -2,7 +2,7 @@
 
 ## Přehled
 
-VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu. Nově také sleduje Git commity a automaticky aktualizuje statistiky při každém commitu.
+VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu.
 
 ## Adresářová struktura
 
@@ -12,12 +12,10 @@ packages/vscode-extension/
 │   ├── extension.ts         # Hlavní vstupní bod rozšíření
 │   ├── ActivityTracker.ts   # Třída pro sledování aktivity uživatele
 │   ├── ApiClient.ts         # Třída pro komunikaci se serverem
-│   ├── GitCommitTracker.ts  # Třída pro sledování Git commitů
 │   ├── GitStashManager.ts   # Třída pro správu Git stash hashů a statistik kódu
 │   ├── StatsReporter.ts     # Třída pro pravidelné odesílání statistik
 │   ├── SessionManager.ts    # Třída pro správu sessions
-│   ├── StatusBarItem.ts     # Třída pro ovládání položky ve status baru
-│   └── git.d.ts             # Typové definice pro Git API
+│   └── StatusBarItem.ts     # Třída pro ovládání položky ve status baru
 ├── .vscodeignore            # Soubory ignorované při publikování
 ├── package.json             # Metadata a konfigurace rozšíření
 ├── tsconfig.json            # Konfigurace TypeScript
@@ -57,22 +55,7 @@ Třída `ApiClient` zajišťuje komunikaci s centrálním serverem.
 - Odesílá data pomocí HTTP POST požadavku
 - Ošetřuje chyby při komunikaci se serverem
 
-### 3. GitCommitTracker
-
-Třída `GitCommitTracker` sleduje Git commity ve všech otevřených repozitářích a vyvolává aktualizaci statistik při každém commitu.
-
-**Klíčové funkce:**
-- Integruje se s Git rozšířením VS Code
-- Sleduje všechny otevřené Git repozitáře
-- Detekuje commit události a automaticky aktualizuje statistiky
-- Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
-
-**Implementační detaily:**
-- Používá oficiální Git API poskytované VS Code (`vscode.git`)
-- Registruje listenery pro události `onDidOpenRepository` a `onDidCommit`
-- Při commitu volá metodu `forceReportStats()` na `StatsReporter`
-
-### 4. GitStashManager
+### 3. GitStashManager
 
 Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získávání statistik o změnách v kódu.
 
@@ -88,7 +71,7 @@ Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získáv
 - Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
 - Při absenci změn používá HEAD jako referenční bod
 
-### 5. StatsReporter
+### 4. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
 
@@ -105,14 +88,13 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 - `start()`: Spustí pravidelné odesílání statistik
 - `stop()`: Zastaví pravidelné odesílání statistik
 - `reportStats()`: Získá a odešle statistiky, pokud je uživatel aktivní a došlo k uložení souboru
-- `forceReportStats()`: Okamžitě odešle statistiky bez ohledu na interval a uložení souboru (používá se např. při commitu)
 
 **Optimalizace:**
 - Provádí náročnou operaci git diff pouze když je skutečně potřeba (po uložení souboru)
 - Sleduje příznak `fileWasSaved`, který indikuje, zda došlo k uložení souboru od posledního odeslání statistik
 - Šetří systémové zdroje vynecháním zbytečných git diff operací, když se kód nezměnil
 
-### 6. SessionManager
+### 5. SessionManager
 
 Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při prvním spuštění nebo po dlouhé neaktivitě.
 
@@ -121,7 +103,7 @@ Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváře
 - Koordinace vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
-### 7. StatusBarController
+### 6. StatusBarController
 
 Třída `StatusBarController` zobrazuje aktuální stav sledování ve status baru VS Code.
 
@@ -138,14 +120,6 @@ Rozšíření sleduje aktivitu uživatele registrováním posluchačů na různ�
 1. Aktualizuje čas poslední aktivity
 2. Pokud uplynul dostatečný čas od posledního odeslání, odešle heartbeat na server
 3. Loguje aktivitu do konzole pro snazší debugging
-
-### Sledování Git commitů
-
-Rozšíření nyní automaticky sleduje Git commity v otevřených repozitářích:
-1. Při inicializaci se připojí k VS Code Git rozšíření
-2. Registruje listenery pro všechny otevřené repozitáře
-3. Po každém commitu okamžitě aktualizuje a odesílá aktuální statistiky kódu
-4. Tím zajišťuje přesné zachycení stavu projektu po každém commitu
 
 ### Získávání informací o projektu
 
@@ -173,10 +147,9 @@ Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním zp�
 4. Statistiky skutečně získává a odesílá pouze když:
    - Uplynul nastavený interval
    - Uživatel je aktivní
-   - Od posledního odeslání byl uložen alespoň jeden soubor (nebo je vyžádáno vynucené odeslání)
+   - Od posledního odeslání byl uložen alespoň jeden soubor
 5. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
-6. Statistiky jsou také okamžitě aktualizovány po každém Git commitu nezávisle na intervalu
-7. Server používá tyto statistiky k obohacení popisků time entries v Toggl
+6. Server používá tyto statistiky k obohacení popisků time entries v Toggl
 
 Tato optimalizovaná implementace zajišťuje:
 - Minimální zatížení systému (git diff se provádí pouze když je potřeba)
@@ -194,18 +167,6 @@ Rozšíření lze konfigurovat přes nastavení VS Code:
 ```
 
 Tato hodnota určuje URL centrálního serveru, na který jsou odesílány heartbeaty a statistiky.
-
-## Závislosti na dalších rozšířeních
-
-Rozšíření nyní vyžaduje pro svůj plnohodnotný provoz přítomnost oficiálního Git rozšíření VS Code:
-
-```json
-"extensionDependencies": [
-  "vscode.git"
-]
-```
-
-Tato závislost zajišťuje, že Git rozšíření bude nainstalováno a aktivováno před Toggl Auto Tracker rozšířením.
 
 ## Příkazy
 
@@ -237,7 +198,6 @@ Vytvoří optimalizovaný build rozšíření a zabalí ho do VSIX souboru, kter
 
 - TypeScript pro typově bezpečný kód
 - VS Code API pro interakci s editorem
-- VS Code Git API pro sledování Git událostí
 - Vite pro bundlování a optimalizaci kódu
 - Fetch API pro komunikaci se serverem
 - Node.js child_process pro interakci s Gitem

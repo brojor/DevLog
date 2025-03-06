@@ -19,9 +19,6 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "extensionDependencies": [
-    "vscode.git"
-  ],
   "contributes": {
     "commands": [
       {
