@@ -1,10 +1,10 @@
 #!/bin/bash
-# Deployment skript pro Toggl Auto Tracker server
+# Deployment skript pro DevLog server
 
 # Konfigurace
 SERVER_HOST="n40l"  # Použití SSH aliasu z ~/.ssh/config
-SERVER_PATH="/home/brojor/production/toggl-auto-tracker"  # Cesta na serveru
-TEMP_DIR="/tmp/toggl-deploy"  # Dočasný adresář pro tarbally
+SERVER_PATH="/home/brojor/production/devlog"  # Cesta na serveru
+TEMP_DIR="/tmp/devlog-deploy"  # Dočasný adresář pro tarbally
 
 # Funkce pro výpis barevných zpráv
 echo_step() {
@@ -25,8 +25,8 @@ rm -rf $TEMP_DIR/*
 
 # 1. Build aplikace
 echo_step "Buildování aplikace..."
-pnpm -r --filter="@toggl-auto-tracker/server" build
-pnpm -r --filter="@toggl-auto-tracker/shared" build
+pnpm -r --filter="@devlog/server" build
+pnpm -r --filter="@devlog/shared" build
 
 # 2. Zabalení shared balíčku
 echo_step "Zabalení shared balíčku..."
@@ -37,7 +37,7 @@ cd ../server
 
 # 3. Úprava package.json pro produkční nasazení
 echo_step "Úprava package.json pro produkční nasazení..."
-jq --arg shared_pkg "file:./$SHARED_PACKAGE" '.dependencies."@toggl-auto-tracker/shared" = $shared_pkg' package.json > $TEMP_DIR/package.json
+jq --arg shared_pkg "file:./$SHARED_PACKAGE" '.dependencies."@devlog/shared" = $shared_pkg' package.json > $TEMP_DIR/package.json
 
 # 4. Příprava a kopírování souborů na server
 echo_step "Příprava a kopírování souborů na server..."

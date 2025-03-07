@@ -1,4 +1,4 @@
-import type { Heartbeat } from '@toggl-auto-tracker/shared'
+import type { Heartbeat } from '@devlog/shared'
 import type { ApiClient } from './ApiClient'
 import * as vscode from 'vscode'
 import { ProjectInfoProvider } from './ProjectInfoProvider'

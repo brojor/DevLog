@@ -1,8 +1,8 @@
-# Dokumentace serverové části Toggl Auto Tracker
+# Dokumentace serverové části DevLog
 
 ## Přehled
 
-Serverová část projektu Toggl Auto Tracker slouží jako centrální komponenta pro zpracování heartbeatů z klientských rozšíření (VS Code, Chrome) a jejich propojení s Toggl API. Server automaticky vytváří, aktualizuje a ukončuje time entries na základě aktivity uživatele a přijatých Git commitů.
+Serverová část projektu DevLog slouží jako centrální komponenta pro zpracování heartbeatů z klientských rozšíření (VS Code, Chrome) a jejich propojení s Toggl API. Server automaticky vytváří, aktualizuje a ukončuje time entries na základě aktivity uživatele a přijatých Git commitů.
 
 ## Adresářová struktura
 
@@ -234,7 +234,7 @@ const loggerConfig: pino.LoggerOptions = {
   // Přidáváme základní metadata pro všechny logy
   base: {
     env: config.server.env,
-    service: 'toggl-auto-tracker-server',
+    service: 'devlog-server',
   },
 }
 
@@ -387,8 +387,8 @@ rm -rf $TEMP_DIR/*
 
 # 1. Build aplikace
 echo_step "Buildování aplikace..."
-pnpm -r --filter="@toggl-auto-tracker/server" build
-pnpm -r --filter="@toggl-auto-tracker/shared" build
+pnpm -r --filter="@devlog/server" build
+pnpm -r --filter="@devlog/shared" build
 
 # 2. Zabalení shared balíčku
 echo_step "Zabalení shared balíčku..."
@@ -399,7 +399,7 @@ cd ../server
 
 # 3. Úprava package.json pro produkční nasazení
 echo_step "Úprava package.json pro produkční nasazení..."
-jq --arg shared_pkg "file:./$SHARED_PACKAGE" '.dependencies."@toggl-auto-tracker/shared" = $shared_pkg' package.json > $TEMP_DIR/package.json
+jq --arg shared_pkg "file:./$SHARED_PACKAGE" '.dependencies."@devlog/shared" = $shared_pkg' package.json > $TEMP_DIR/package.json
 
 # 4. Příprava a kopírování souborů na server
 echo_step "Příprava a kopírování souborů na server..."

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Toggl Auto Tracker",
+  "name": "DevLog",
   "version": "0.1.0",
-  "description": "Automatic time tracking for Toggl",
+  "description": "Automatic time tracking and development logging solution",
   "background": {
     "service_worker": "src/background.js",
     "type": "module"

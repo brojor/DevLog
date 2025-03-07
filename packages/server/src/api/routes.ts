@@ -1,4 +1,4 @@
-import type { CodeStats, Heartbeat } from '@toggl-auto-tracker/shared'
+import type { CodeStats, Heartbeat } from '@devlog/shared'
 import type { Request, Response } from 'express'
 import type { CommitInfo } from '../types'
 import { Router } from 'express'

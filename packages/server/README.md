@@ -1,8 +1,8 @@
-# Toggl Auto Tracker - Server
+# DevLog - Server
 
 ## 🚀 Přehled
 
-Serverová část Toggl Auto Tracker slouží jako centrální komponenta systému, která zpracovává heartbeaty z klientských rozšíření (VS Code, Chrome) a propojuje je s Toggl API. Server automaticky vytváří, aktualizuje a ukončuje time entries na základě aktivity uživatele.
+Serverová část DevLog slouží jako centrální komponenta systému, která zpracovává heartbeaty z klientských rozšíření (VS Code, Chrome) a propojuje je s Toggl API. Server automaticky vytváří, aktualizuje a ukončuje time entries na základě aktivity uživatele.
 
 ## ✨ Funkce
 
@@ -26,8 +26,8 @@ Serverová část Toggl Auto Tracker slouží jako centrální komponenta systé
 
 ```bash
 # Klonování repozitáře
-git clone https://github.com/brojor/toggl-auto-tracker.git
-cd toggl-auto-tracker
+git clone https://github.com/brojor/devlog.git
+cd devlog
 
 # Instalace závislostí
 pnpm install
@@ -54,7 +54,7 @@ TOGGL_WORKSPACE_ID=your_toggl_workspace_id
 
 ```bash
 # Z kořenového adresáře monorepa
-pnpm -F @toggl-auto-tracker/server dev
+pnpm -F @devlog/server dev
 
 # Nebo přímo v adresáři serveru
 cd packages/server
@@ -65,10 +65,10 @@ pnpm dev
 
 ```bash
 # Build
-pnpm -F @toggl-auto-tracker/server build
+pnpm -F @devlog/server build
 
 # Spuštění
-pnpm -F @toggl-auto-tracker/server start
+pnpm -F @devlog/server start
 
 # Nebo pomocí PM2
 cd packages/server
@@ -106,7 +106,7 @@ Logy jsou automaticky rotovány (denně) a uchovávány po dobu 30 dní.
 
 Pro zobrazení logů na serveru použijte:
 ```bash
-pm2 logs toggl-auto-tracker
+pm2 logs devlog
 ```
 
 ## 🌐 API Endpointy
@@ -135,5 +135,5 @@ Konfigurace PM2 pro produkční nasazení je v souboru `ecosystem.config.cjs`. T
 
 ## 🔗 Další komponenty
 
-- **[VS Code rozšíření](https://github.com/brojor/toggl-auto-tracker/tree/main/packages/vscode-extension)**: Sledování času v editoru
-- **[Chrome rozšíření](https://github.com/brojor/toggl-auto-tracker/tree/main/packages/chrome-extension)**: Sledování času v prohlížeči
+- **[VS Code rozšíření](https://github.com/brojor/devlog/tree/main/packages/vscode-extension)**: Sledování času v editoru
+- **[Chrome rozšíření](https://github.com/brojor/devlog/tree/main/packages/chrome-extension)**: Sledování času v prohlížeči

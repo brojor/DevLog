@@ -1,13 +1,13 @@
 {
   "publisher": "brojor",
-  "name": "toggl-auto-tracker",
-  "displayName": "Toggl Auto Tracker",
+  "name": "devlog",
+  "displayName": "DevLog",
   "version": "0.1.0",
   "private": true,
-  "description": "Automatically track your time spent on projects in Toggl",
+  "description": "Automatic time tracking and development logging solution",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brojor/toggl-auto-tracker.git"
+    "url": "https://github.com/brojor/devlog.git"
   },
   "categories": [
     "Other"
@@ -22,17 +22,17 @@
   "contributes": {
     "commands": [
       {
-        "command": "toggl-auto-tracker.togglePause",
-        "title": "Toggl Auto Tracker: Toggle Pause"
+        "command": "devlog.togglePause",
+        "title": "DevLog: Toggle Pause"
       }
     ],
     "configuration": {
-      "title": "Toggl Auto Tracker",
+      "title": "DevLog",
       "properties": {
-        "togglAutoTracker.serverUrl": {
+        "devlog.serverUrl": {
           "type": "string",
           "default": "http://n40l:3000",
-          "description": "URL adresa pro Toggl Auto Tracker server"
+          "description": "URL adresa pro DevLog server"
         }
       }
     }
@@ -45,7 +45,7 @@
     "package": "vite build && vsce package --no-dependencies --out dist"
   },
   "dependencies": {
-    "@toggl-auto-tracker/shared": "workspace:^"
+    "@devlog/shared": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",

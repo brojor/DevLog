@@ -1,4 +1,4 @@
-import type { CodeStats } from '@toggl-auto-tracker/shared'
+import type { CodeStats } from '@devlog/shared'
 import { exec } from 'node:child_process'
 import * as vscode from 'vscode'
 

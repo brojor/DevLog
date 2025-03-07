@@ -1,4 +1,4 @@
-import type { CodeStats, Heartbeat } from '@toggl-auto-tracker/shared'
+import type { CodeStats, Heartbeat } from '@devlog/shared'
 import * as vscode from 'vscode'
 
 /**
@@ -14,7 +14,7 @@ export class ApiClient {
 
   constructor() {
     // Získáme URL serveru z konfigurace
-    const configServerUrl = vscode.workspace.getConfiguration('togglAutoTracker').get<string>('serverUrl')
+    const configServerUrl = vscode.workspace.getConfiguration('devlog').get<string>('serverUrl')
     if (!configServerUrl || !this.isValidUrl(configServerUrl)) {
       throw new Error('Invalid or missing server URL in configuration')
     }

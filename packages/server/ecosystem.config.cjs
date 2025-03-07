@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'toggl-auto-tracker',
+      name: 'devlog',
       script: 'dist/index.cjs',
       instances: 1,
       autorestart: true,

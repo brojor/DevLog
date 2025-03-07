@@ -1,5 +1,5 @@
 {
-  "name": "@toggl-auto-tracker/shared",
+  "name": "@devlog/shared",
   "type": "module",
   "version": "0.1.0",
   "private": true,

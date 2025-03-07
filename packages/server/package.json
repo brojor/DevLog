@@ -1,5 +1,5 @@
 {
-  "name": "@toggl-auto-tracker/server",
+  "name": "@devlog/server",
   "type": "module",
   "version": "0.1.0",
   "private": true,
@@ -12,7 +12,7 @@
     "deploy": "bash ./scripts/deploy.sh"
   },
   "dependencies": {
-    "@toggl-auto-tracker/shared": "workspace:^",
+    "@devlog/shared": "workspace:^",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "pino": "^9.6.0",

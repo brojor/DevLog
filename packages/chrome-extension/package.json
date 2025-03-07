@@ -1,5 +1,5 @@
 {
-  "name": "@toggl-auto-tracker/chrome-extension",
+  "name": "@devlog/chrome-extension",
   "type": "module",
   "version": "0.1.0",
   "private": true,
@@ -10,7 +10,7 @@
     "lint:fix": "eslint --fix ."
   },
   "dependencies": {
-    "@toggl-auto-tracker/shared": "workspace:^"
+    "@devlog/shared": "workspace:^"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.306",

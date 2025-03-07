@@ -1,9 +1,9 @@
 {
-  "name": "toggl-auto-tracker",
+  "name": "devlog",
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "Automatic time tracking solution for Toggl",
+  "description": "Automatic time tracking and development logging solution",
   "engines": {
     "node": ">=20.10.0",
     "pnpm": ">=8.12.0"

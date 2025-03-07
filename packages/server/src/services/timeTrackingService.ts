@@ -1,4 +1,4 @@
-import type { CodeStats, Heartbeat } from '@toggl-auto-tracker/shared'
+import type { CodeStats, Heartbeat } from '@devlog/shared'
 import type { ActiveSession, CommitInfo, CreateNewSessionParams } from '../types'
 import type { TogglService } from './togglService'
 import { config } from '../config'

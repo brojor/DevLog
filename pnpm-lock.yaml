@@ -32,7 +32,7 @@ importers:
 
   packages/chrome-extension:
     dependencies:
-      '@toggl-auto-tracker/shared':
+      '@devlog/shared':
         specifier: workspace:^
         version: link:../shared
     devDependencies:
@@ -54,7 +54,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@toggl-auto-tracker/shared':
+      '@devlog/shared':
         specifier: workspace:^
         version: link:../shared
       dotenv:
@@ -97,7 +97,7 @@ importers:
 
   packages/vscode-extension:
     dependencies:
-      '@toggl-auto-tracker/shared':
+      '@devlog/shared':
         specifier: workspace:^
         version: link:../shared
     devDependencies:
