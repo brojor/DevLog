@@ -1,8 +1,8 @@
-# Toggl Auto Tracker - VS Code Rozšíření
+# DevLog - VS Code Rozšíření
 
 ## 🚀 Přehled
 
-Toggl Auto Tracker je automatizované řešení pro sledování času ve VS Code, které pomáhá vývojářům přesně zaznamenávat čas strávený prací na projektech bez ručního zadávání.
+DevLog je automatizované řešení pro sledování času ve VS Code, které pomáhá vývojářům přesně zaznamenávat čas strávený prací na projektech bez ručního zadávání.
 
 ## ✨ Funkce
 
@@ -18,7 +18,7 @@ Toggl Auto Tracker je automatizované řešení pro sledování času ve VS Code
 
 - VS Code verze 1.60.0 nebo vyšší
 - Node.js verze 20.10.0 nebo vyšší
-- Běžící Toggl Auto Tracker server
+- Běžící DevLog server
 - Git nainstalovaný a dostupný v PATH
 
 ## 📦 Instalace
@@ -34,14 +34,14 @@ V nastavení VS Code můžete upravit:
 
 ```json
 {
-  "togglAutoTracker.serverUrl": "http://localhost:3000"
+  "devlog.serverUrl": "http://localhost:3000"
 }
 ```
 
 ## 🎮 Ovládání
 
 - **Status Bar**: Kliknutím pozastavíte/obnovíte sledování
-- Příkaz: `Toggl Auto Tracker: Toggle Pause`
+- Příkaz: `DevLog: Toggle Pause`
 
 ## 📊 Sledování statistik
 
@@ -50,12 +50,12 @@ Rozšíření automaticky sleduje vaši aktivitu a sbírá tyto statistiky:
 - Počet přidaných řádků kódu
 - Počet odebraných řádků kódu
 
-Statistiky jsou periodicky odesílány na server, který je zahrnuje do popisků time entries v Toggl.
+Statistiky jsou periodicky odesílány na server, který je zahrnuje do popisků time logs v Notion.
 
 ## 🔗 Další komponenty
 
-- **[Centrální server](https://github.com/brojor/toggl-auto-tracker/tree/main/packages/server)**: Node.js backend
-- **[Chrome rozšíření](https://github.com/brojor/toggl-auto-tracker/tree/main/packages/chrome-extension)**: Sledování času v prohlížeči
+- **[Centrální server](https://github.com/brojor/devlog/tree/main/packages/server)**: Node.js backend
+- **[Chrome rozšíření](https://github.com/brojor/devlog/tree/main/packages/chrome-extension)**: Sledování času v prohlížeči
 
 ## 🐛 Hlášení problémů
 

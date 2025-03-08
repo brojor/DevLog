@@ -1,8 +1,8 @@
-# Dokumentace VS Code rozšíření pro Toggl Auto Tracker
+# Dokumentace VS Code rozšíření pro DevLog
 
 ## Přehled
 
-VS Code rozšíření je klíčovou součástí Toggl Auto Tracker systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu. Nově také sleduje Git commity a automaticky aktualizuje statistiky při každém commitu.
+VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu. Nově také sleduje Git commity a automaticky aktualizuje statistiky při každém commitu.
 
 ## Adresářová struktura
 
@@ -170,7 +170,7 @@ Informace o projektu jsou aktualizovány:
 
 Uživatel může dočasně pozastavit sledování:
 1. Kliknutím na položku ve status baru
-2. Použitím příkazu "Toggl Auto Tracker: Toggle Pause" z příkazové palety
+2. Použitím příkazu "DevLog: Toggle Pause" z příkazové palety
 
 Při pozastavení:
 1. Změní se ikona a text v status baru
@@ -188,7 +188,7 @@ Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním zp�
    - Uživatel je aktivní
    - Od posledního odeslání byl uložen alespoň jeden soubor
 5. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
-6. Server používá tyto statistiky k obohacení popisků time entries v Toggl
+6. Server používá tyto statistiky k obohacení popisků time logs v Notion
 
 Tato optimalizovaná implementace zajišťuje:
 - Minimální zatížení systému (git diff se provádí pouze když je potřeba)
@@ -206,7 +206,7 @@ Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
    - Získá timestamp z názvu souboru
    - Získá aktuální statistiky kódu
    - Odešle tyto informace na server
-5. Server použije tyto informace pro vytvoření nového time entry s popisem založeným na commit zprávě
+5. Server použije tyto informace pro vytvoření nového záznamu v Notion s popisem založeným na commit zprávě
 6. Tento přístup zajišťuje spolehlivou detekci pouze úspěšných commitů
 
 ## Konfigurace
@@ -215,7 +215,7 @@ Rozšíření lze konfigurovat přes nastavení VS Code:
 
 ```json
 {
-  "togglAutoTracker.serverUrl": "http://localhost:3000"
+  "devlog.serverUrl": "http://localhost:3000"
 }
 ```
 
@@ -225,7 +225,7 @@ Tato hodnota určuje URL centrálního serveru, na který jsou odesílány heart
 
 Rozšíření registruje následující příkazy:
 
-1. `toggl-auto-tracker.togglePause` ("Toggl Auto Tracker: Toggle Pause")
+1. `devlog.togglePause` ("DevLog: Toggle Pause")
    - Přepíná mezi aktivním a pozastaveným stavem sledování
    - Aktualizuje UI pro indikaci nového stavu
 
