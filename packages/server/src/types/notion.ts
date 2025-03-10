@@ -59,14 +59,15 @@ export interface TaskProperties extends PageProperties {
 export interface SessionInput {
   name: string
   taskId?: string
-  startDate: Date | string
-  endDate?: Date | string
+  date: { start: Date | string, end?: Date | string }
   ideTime?: number
   browserTime?: number
   filesChanged?: number
   linesAdded?: number
   linesRemoved?: number
 }
+
+export type MinimalRequiredSessionInput = Partial<SessionInput> & Required<Pick<SessionInput, 'date'>>
 
 export interface SessionProperties extends PageProperties {
   'Task'?: { relation: [{ id: string }] }

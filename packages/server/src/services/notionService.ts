@@ -1,4 +1,4 @@
-import type { NotionConfig, ProjectInput, SessionInput, TaskInput } from '../types/notion'
+import type { MinimalRequiredSessionInput, NotionConfig, ProjectInput, SessionInput, TaskInput } from '../types/notion'
 import { Client, collectPaginatedAPI, isNotionClientError } from '@notionhq/client'
 import ProjectPropertiesBuilder from '../builders/ProjectPropertiesBuilder'
 import SessionPropertiesBuilder from '../builders/SessionPropertiesBuilder'
@@ -140,7 +140,7 @@ export default class NotionService {
   }
 
   // Metoda pro aktualizaci existující session
-  async updateSession(sessionId: string, updates: Partial<SessionInput>): Promise<void> {
+  async updateSession(sessionId: string, updates: MinimalRequiredSessionInput): Promise<void> {
     try {
       const properties = SessionPropertiesBuilder.fromInput(updates).build()
 

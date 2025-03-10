@@ -139,7 +139,10 @@ export class SessionManager {
 
       // Aktualizujeme session v Notion s koncovým časem a aktuálními statistikami
       await this.notionService.updateSession(this.activeSession.id, {
-        endDate: new Date(this.activeSession.lastActivity).toISOString(),
+        date: {
+          start: this.activeSession.startDate,
+          end: new Date(this.activeSession.lastActivity).toISOString(),
+        },
         ideTime: Math.round(this.activeSession.ideTime / 60),
         browserTime: Math.round(this.activeSession.browserTime / 60),
         filesChanged: this.activeSession.codeStats.filesChanged,
@@ -218,7 +221,9 @@ export class SessionManager {
       // Připravíme vstupní data pro novou session
       const sessionInput: SessionInput = {
         name: sessionName,
-        startDate: new Date().toISOString(),
+        date: {
+          start: this.activeSession.startDate,
+        },
       }
 
       // Vytvoříme session v Notion
@@ -250,6 +255,7 @@ export class SessionManager {
   private resetActiveSession(): void {
     this.activeSession = {
       id: null,
+      startDate: new Date().toISOString(),
       lastActivity: 0,
       ideTime: 0,
       browserTime: 0,

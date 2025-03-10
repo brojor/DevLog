@@ -1,4 +1,4 @@
-import type { SessionInput, SessionProperties } from '../types/notion'
+import type { MinimalRequiredSessionInput, SessionProperties } from '../types/notion'
 import PagePropertiesBuilder from './PagePropertiesBuilder'
 
 export default class SessionPropertiesBuilder extends PagePropertiesBuilder<SessionProperties> {
@@ -13,15 +13,13 @@ export default class SessionPropertiesBuilder extends PagePropertiesBuilder<Sess
   }
 
   // Factory metoda
-  static fromInput(input: Partial<SessionInput>): SessionPropertiesBuilder {
+  static fromInput(input: MinimalRequiredSessionInput): SessionPropertiesBuilder {
     const builder = new SessionPropertiesBuilder()
+
+    builder.date(input.date)
 
     if (input.name)
       builder.name(input.name)
-    if (input.startDate)
-      builder.date({ start: input.startDate })
-    if (input.endDate)
-      builder.date({ end: input.endDate })
     if (input.taskId)
       builder.task(input.taskId)
     if (input.ideTime !== undefined)
@@ -46,7 +44,7 @@ export default class SessionPropertiesBuilder extends PagePropertiesBuilder<Sess
     return this
   }
 
-  date(date: { start?: Date | string, end?: Date | string }): this {
+  date(date: { start: Date | string, end?: Date | string }): this {
     const start = date.start instanceof Date ? date.start.toISOString() : date.start
     const end = date.end instanceof Date ? date.end?.toISOString() : date.end
 
