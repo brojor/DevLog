@@ -26,7 +26,7 @@ export default class ProjectPropertiesBuilder extends PagePropertiesBuilder<Proj
 
   // Implementace specifických metod pro ProjectPropertiesBuilder
   slug(slug: string): this {
-    this.properties.Slug = {
+    this.properties.slug = {
       rich_text: [{ text: { content: slug } }],
     }
     return this

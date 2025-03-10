@@ -189,7 +189,7 @@ DevLog používá tři propojené databáze v Notion:
 
 Obsahuje informace o projektech (repozitářích):
 - Name - Název projektu
-- Slug - Normalizovaný název používaný pro vyhledávání
+- slug - Normalizovaný název používaný pro vyhledávání
 - Description - Popis projektu z GitHub
 - Status - Stav projektu (Active, Completed, On Hold)
 - Repository - URL repozitáře

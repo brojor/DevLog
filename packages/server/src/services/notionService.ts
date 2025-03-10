@@ -72,7 +72,7 @@ export default class NotionService {
       const response = await this.client.databases.query({
         database_id: this.databases.projects,
         filter: {
-          property: 'Slug',
+          property: 'slug',
           rich_text: {
             equals: slug,
           },

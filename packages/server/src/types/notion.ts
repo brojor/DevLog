@@ -27,7 +27,7 @@ export interface ProjectInput {
 }
 
 export interface ProjectProperties extends PageProperties {
-  'Slug'?: { rich_text: [{ text: { content: string } }] }
+  'slug'?: { rich_text: [{ text: { content: string } }] }
   'Description'?: { rich_text: [{ text: { content: string } }] }
   'Status'?: { select: { name: 'Active' | 'Completed' | 'On Hold' } }
   'Repository'?: { url: string }
