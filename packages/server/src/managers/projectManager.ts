@@ -23,7 +23,7 @@ export class ProjectManager {
    * @param repoOwner Repository owner
    * @returns Project ID
    */
-  async getOrCreateProjectFromRepo(repoName: string, repoOwner: string): Promise<string> {
+  async getOrCreateProjectFromRepo(repoOwner: string, repoName: string): Promise<string> {
     try {
       // Vytvoříme slug z názvu repo
       const slug = repoName.toLowerCase()
@@ -70,7 +70,7 @@ export class ProjectManager {
    * @returns Repository details from GitHub
    * @private
    */
-  private async fetchRepoDetailsFromGitHub(repoName: string, repoOwner: string): Promise<any> {
+  private async fetchRepoDetailsFromGitHub(repoOwner: string, repoName: string): Promise<any> {
     try {
       const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}`)
 

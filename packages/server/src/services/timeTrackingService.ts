@@ -61,7 +61,7 @@ export class TimeTrackingService {
       await this.sessionManager.endCurrentSession()
 
       // 2. Získáme nebo vytvoříme projekt podle informací o repozitáři
-      const projectId = await this.projectManager.getOrCreateProjectFromRepo(commitInfo.repository.name, commitInfo.repository.owner)
+      const projectId = await this.projectManager.getOrCreateProjectFromRepo(commitInfo.repository.owner, commitInfo.repository.name)
 
       // 3. Předáme commitInfo taskManageru pro vytvoření tasku a propojení sessions
       return this.taskManager.processCommit(commitInfo, projectId)
