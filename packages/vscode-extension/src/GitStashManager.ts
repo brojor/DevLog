@@ -119,10 +119,7 @@ export class GitStashManager {
       const output = await this.executeCommand(command, workspacePath)
 
       // Přidáme aktuální timestamp k parsovaným statistikám
-      return {
-        ...this.parseGitDiffShortstat(output),
-        timestamp: Date.now(),
-      }
+      return this.parseGitDiffShortstat(output)
     }
     catch (error) {
       console.error('GitStashManager: Chyba při získávání statistik diff:', error)

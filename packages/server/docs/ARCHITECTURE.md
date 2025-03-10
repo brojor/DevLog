@@ -2,35 +2,47 @@
 
 ## Přehled
 
-Serverová část projektu DevLog slouží jako centrální komponenta pro zpracování heartbeatů z klientských rozšíření (VS Code, Chrome) a jejich propojení s Toggl API. Server automaticky vytváří, aktualizuje a ukončuje time entries na základě aktivity uživatele a přijatých Git commitů.
+Serverová část projektu DevLog slouží jako centrální komponenta pro zpracování heartbeatů z klientských rozšíření (VS Code, Chrome) a jejich ukládání do Notion databází. Server automaticky vytváří, aktualizuje a ukončuje sessions na základě aktivity uživatele a přijatých Git commitů.
 
 ## Adresářová struktura
 
 ```
-packages/server/
-├── src/
-│   ├── api/            # API endpointy
-│   │   └── routes.ts   # Definice API tras
-│   ├── config/         # Konfigurace aplikace
-│   │   ├── index.ts    # Hlavní konfigurační soubor
-│   │   └── logger.ts   # Konfigurace loggeru
-│   ├── middlewares/    # Middlewary pro Express
-│   │   └── logger.ts   # HTTP logging middleware
-│   ├── services/       # Služby
-│   │   ├── togglService.ts        # Komunikace s Toggl API
-│   │   └── timeTrackingService.ts # Správa time entries
-│   ├── types/          # TypeScript definice
-│   │   └── index.ts    # Serverové typy
-│   └── index.ts        # Vstupní bod aplikace
-├── scripts/            # Utility skripty
-│   └── deploy.sh       # Deployment skript
-├── dist/               # Buildnutá produkční verze
-├── logs/               # Adresář pro logy (vytvoří se při běhu)
-├── .env.example        # Šablona pro konfigurační proměnné
+.
+├── dist/                # Buildnutá produkční verze
+│   └── index.cjs        # Zkompilovaný vstupní bod
+├── docs/                # Dokumentace
+│   └── ARCHITECTURE.md  # Detailní popis architektury
+├── scripts/             # Utility skripty
+│   └── deploy.sh        # Deployment skript
+├── src/                 # Zdrojový kód
+│   ├── api/             # API endpointy
+│   │   └── routes.ts    # Definice API tras
+│   ├── builders/        # Buildery pro Notion properties
+│   │   ├── PagePropertiesBuilder.ts    # Základní builder pro stránky
+│   │   ├── ProjectPropertiesBuilder.ts # Builder pro projekty
+│   │   ├── SessionPropertiesBuilder.ts # Builder pro sessions
+│   │   └── TaskPropertiesBuilder.ts    # Builder pro tasky
+│   ├── config/          # Konfigurace aplikace
+│   │   ├── index.ts     # Hlavní konfigurační soubor
+│   │   └── logger.ts    # Konfigurace loggeru
+│   ├── managers/        # Manažeři pro správu jednotlivých entit
+│   │   ├── projectManager.ts       # Správa projektů
+│   │   ├── sessionManager.ts       # Správa sessions
+│   │   └── taskManager.ts          # Správa tasků
+│   ├── middlewares/     # Middlewary pro Express
+│   │   └── logger.ts    # HTTP logging middleware
+│   ├── services/        # Služby
+│   │   ├── notionService.ts        # Komunikace s Notion API
+│   │   └── timeTrackingService.ts  # Koordinace sledování času
+│   ├── types/           # TypeScript definice
+│   │   ├── index.ts     # Serverové typy
+│   │   └── notion.ts    # Typy pro Notion
+│   └── index.ts         # Vstupní bod aplikace
+├── README.md            # Dokumentace projektu
 ├── ecosystem.config.cjs # PM2 konfigurace
-├── package.json        # Dependence pro server
-├── tsconfig.json       # TypeScript konfigurace
-└── vite.config.ts      # Konfigurace buildu
+├── package.json         # Dependence a skripty projektu
+├── tsconfig.json        # TypeScript konfigurace
+└── vite.config.ts       # Konfigurace buildu
 ```
 
 ## Sdílené typy
@@ -40,9 +52,14 @@ V balíčku `packages/shared` jsou definovány typy používané napříč celou
 ### Heartbeat
 
 ```typescript
+export enum HeartbeatSource {
+  VSCODE = 'vscode',
+  CHROME = 'chrome'
+}
+
 export interface Heartbeat {
   timestamp: number // Časová značka události (unix timestamp)
-  source: 'vscode' | 'chrome' // Zdroj heartbeatu
+  source: HeartbeatSource // Zdroj heartbeatu
   projectName?: string // Název projektu (nepovinné)
 }
 ```
@@ -64,8 +81,47 @@ export interface CodeStats {
 export interface CommitInfo {
   message: string // Zpráva commitu
   timestamp: number // Časová značka commitu
+  hash: string // Hash commitu
+  repository: {
+    name: string // Název repozitáře
+    owner: string // Vlastník repozitáře
+  }
 }
 ```
+
+## Architektura
+
+Serverová část DevLog využívá modulární architekturu s jasně oddělenými zodpovědnostmi:
+
+### Služby
+
+1. **NotionService** - Nízkoúrovňová komunikace s Notion API
+   - Vytváření a aktualizace záznamů v Notion databázích
+   - Vyhledávání projektů podle slugu
+   - Počítání sessions v daném časovém období
+
+2. **TimeTrackingService** - Koordinace celého systému
+   - Inicializace a koordinace všech manažerů
+   - Poskytování jednotného rozhraní pro API kontrolery
+   - Zajištění správného toku dat mezi manažery
+
+### Manažeři
+
+1. **SessionManager** - Správa sessions
+   - Zpracování heartbeatů z klientských rozšíření
+   - Sledování aktivního času v IDE a prohlížeči
+   - Automatické ukončování sessions při neaktivitě
+   - Aktualizace statistik o změnách v kódu
+
+2. **TaskManager** - Správa tasků
+   - Vytváření nových tasků na základě commit informací
+   - Propojování ukončených sessions s tasky
+   - Parsování commit zpráv pro extrakci názvu a detailů
+
+3. **ProjectManager** - Správa projektů
+   - Vyhledávání existujících projektů podle slugu
+   - Vytváření nových projektů na základě informací o repozitáři
+   - Získávání detailů o repozitáři z GitHub API
 
 ## API Endpointy
 
@@ -80,9 +136,9 @@ Přijímá heartbeaty z klientských rozšíření, které signalizují aktivitu
 
 **Zpracování:**
 1. Validace vstupních dat
-2. Pokud není aktivní žádný time entry, vytvoří nový
-3. Pokud existuje aktivní time entry, aktualizuje čas poslední aktivity
-4. Pokud se změnil projekt, ukončí aktuální time entry a vytvoří nový
+2. Pokud není aktivní žádná session, vytvoří novou
+3. Pokud existuje aktivní session, aktualizuje čas poslední aktivity
+4. Přidává čas do příslušného čítače (IDE nebo Browser) podle zdroje heartbeatu
 
 **Odpověď:**
 - 200 OK - Heartbeat byl zpracován, vrací ID aktivní session
@@ -99,58 +155,69 @@ Přijímá statistiky o změnách v kódu z VS Code rozšíření.
 **Zpracování:**
 1. Validace vstupních dat
 2. Aktualizace statistik v aktivní session
-3. Vrací ID aktivní session nebo 0, pokud žádná session není aktivní
+3. Statistiky jsou ukládány lokálně a do Notion jsou odeslány až při ukončení session
 
 **Odpověď:**
-- 200 OK - Statistiky byly zpracovány, vrací ID aktivní session
+- 200 OK - Statistiky byly zpracovány
 - 400 Bad Request - Chybějící nebo neplatná data
 - 500 Internal Server Error - Chyba při zpracování
 
 ### POST /api/commit
 
-Přijímá informace o Git commitech, které vedou k ukončení aktuálního time entry a vytvoření nového.
+Přijímá informace o Git commitech, které vedou k ukončení aktuální session a vytvoření nového tasku.
 
 **Vstup:**
 - Objekt typu `CommitInfo`
 
 **Zpracování:**
 1. Validace vstupních dat
-2. Ukončení aktuálního time entry, pokud existuje
-3. Aktualizace popisu ukončeného time entry podle commit zprávy
-4. Vytvoření nového time entry pro pokračující práci
+2. Ukončení aktuální session, pokud existuje
+3. Vyhledání nebo vytvoření projektu podle informací o repozitáři
+4. Vytvoření nového tasku s informacemi z commitu
+5. Propojení ukončené session s vytvořeným taskem
 
 **Odpověď:**
-- 200 OK - Commit byl zpracován
+- 200 OK - Commit byl zpracován, vrací ID vytvořeného tasku
 - 400 Bad Request - Chybějící nebo neplatná data
 - 500 Internal Server Error - Chyba při zpracování
 
-## Služby
+## Modelování dat v Notion
 
-### TogglService
+DevLog používá tři propojené databáze v Notion:
 
-Služba pro komunikaci s Toggl API.
+### Projects
 
-**Metody:**
-- `createTimeEntry({ start, description, projectName })` - Vytvoří nový time entry, vrací ID vytvořeného záznamu
-- `updateTimeEntry(id, { description, stop, projectName })` - Aktualizuje existující time entry
+Obsahuje informace o projektech (repozitářích):
+- Name - Název projektu
+- Slug - Normalizovaný název používaný pro vyhledávání
+- Description - Popis projektu z GitHub
+- Status - Stav projektu (Active, Completed, On Hold)
+- Repository - URL repozitáře
+- Start Date - Datum vytvoření projektu
+- Tasks - Relation na tasky
 
-**Mapování projektů:**
-- Služba automaticky mapuje názvy projektů na jejich ID pomocí konfigurace v `config.toggl.projectIdsMap`
+### Tasks
 
-### TimeTrackingService
+Reprezentuje úkoly (commity) s vlastnostmi:
+- Name - Název tasku (první řádek commit zprávy)
+- Project - Relation na projekt
+- Status - Stav úkolu (Not Started, In Progress, Done)
+- Commit URL - Odkaz na commit
+- Details - Další informace z commit zprávy (vše kromě prvního řádku)
+- Due Date - Datum commitu
+- Sessions - Relation na sessions
 
-Služba pro správu time entries a zpracování událostí.
+### Sessions
 
-**Metody:**
-- `processHeartbeat(heartbeat)` - Zpracuje heartbeat z klienta, vrací ID aktivní session
-- `processCodeStats(stats)` - Zpracuje statistiky kódu, vrací ID aktivní session nebo 0, pokud není aktivní
-- `processCommit(commitInfo)` - Zpracuje informaci o commitu
-
-**Klíčové vlastnosti:**
-- Oddělené měření času stráveného v různých prostředích (IDE vs prohlížeč)
-- Automatické ukončování sessions při neaktivitě
-- Ukončování sessions při změně projektu
-- Formátování popisů time entries včetně statistik
+Zaznamenává časové úseky práce:
+- Name - Název session ve formátu "Session YYYY-MM #NNN"
+- Task - Relation na task
+- Date - Časové rozmezí (start-end)
+- Ide Time - Čas strávený v IDE (v minutách)
+- Browser Time - Čas strávený v prohlížeči (v minutách)
+- Files Changed - Počet změněných souborů
+- Lines Added - Počet přidaných řádků
+- Lines Removed - Počet odebraných řádků
 
 ## Konfigurace
 
@@ -163,9 +230,11 @@ Konfigurace aplikace je uložena v souboru `.env` a zpracována pomocí modulu `
 PORT=3000
 NODE_ENV=development
 
-# Toggl API nastavení
-TOGGL_API_TOKEN=your_toggl_api_token
-TOGGL_WORKSPACE_ID=your_toggl_workspace_id
+# Notion API nastavení
+NOTION_API_TOKEN=your_notion_api_token
+NOTION_PROJECTS_DATABASE_ID=your_notion_projects_database_id
+NOTION_TASKS_DATABASE_ID=your_notion_tasks_database_id
+NOTION_SESSIONS_DATABASE_ID=your_notion_sessions_database_id
 ```
 
 ### Konfigurace v kódu
@@ -173,28 +242,25 @@ TOGGL_WORKSPACE_ID=your_toggl_workspace_id
 Centralizovaná konfigurace v `src/config/index.ts`:
 
 ```typescript
-export const config = {
+export const appConfig = {
   // Server nastavení
   server: {
     port: env.PORT || 3000,
     env: env.NODE_ENV || 'development',
   },
 
-  // Toggl API nastavení
-  toggl: {
-    apiUrl: 'https://api.track.toggl.com/api/v9',
-    apiToken: env.TOGGL_API_TOKEN || '',
-    workspaceId: env.TOGGL_WORKSPACE_ID || '',
-    projectIdsMap: {
-      'knihozrout': 209468968,
-      'toggl-auto-tracker': 209496908,
-    },
+  // Notion API nastavení
+  notion: {
+    apiToken: env.NOTION_API_TOKEN || '',
+    projectsDatabaseId: env.NOTION_PROJECTS_DATABASE_ID || '',
+    tasksDatabaseId: env.NOTION_TASKS_DATABASE_ID || '',
+    sessionsDatabaseId: env.NOTION_SESSIONS_DATABASE_ID || '',
   },
 
-  // Nastavení aplikace
-  app: {
+  // Nastavení session
+  session: {
     heartbeatInterval: 5, // v sekundách
-    inactivityTimeout: 120, // v sekundách, ukončí time entry po 2 minutách neaktivity
+    inactivityTimeout: 120, // v sekundách, ukončí session po 2 minutách neaktivity
   },
 }
 ```
@@ -214,14 +280,14 @@ Implementováno pomocí strukturovaného loggeru Pino.
 
 ```typescript
 import pino from 'pino'
-import { config } from './index'
+import { appConfig } from './index'
 
 // Základní konfigurace pro Pino logger
 const loggerConfig: pino.LoggerOptions = {
-  level: config.server.env === 'production' ? 'info' : 'debug',
+  level: appConfig.server.env === 'production' ? 'info' : 'debug',
   // V produkčním prostředí používáme jednoduchý formát JSON pro efektivitu
   // V development prostředí používáme pino-pretty pro čitelnější logy
-  transport: config.server.env === 'development'
+  transport: appConfig.server.env === 'development'
     ? {
         target: 'pino-pretty',
         options: {
@@ -233,7 +299,7 @@ const loggerConfig: pino.LoggerOptions = {
     : undefined,
   // Přidáváme základní metadata pro všechny logy
   base: {
-    env: config.server.env,
+    env: appConfig.server.env,
     service: 'devlog-server',
   },
 }
@@ -242,77 +308,24 @@ const loggerConfig: pino.LoggerOptions = {
 export const logger = pino(loggerConfig)
 ```
 
-### HTTP Middleware Logger
-
-```typescript
-import { randomUUID } from 'node:crypto'
-import pinoHttp from 'pino-http'
-import { logger } from '../config/logger'
-
-// Vytvoření middleware pro HTTP logování
-export const httpLogger = pinoHttp({
-  logger,
-  // Generuje unikátní ID pro každý požadavek
-  genReqId: (req) => {
-    return req.id || randomUUID()
-  },
-  // Přizpůsobení logovaných atributů
-  customProps: (req, res) => {
-    return {
-      userAgent: req.headers['user-agent'],
-      remoteAddress: req.socket.remoteAddress,
-    }
-  },
-  // Úprava úrovně logování na základě stavových kódů HTTP
-  customLogLevel: (req, res, err) => {
-    if (err || res.statusCode >= 500)
-      return 'error'
-    if (res.statusCode >= 400)
-      return 'warn'
-    return 'info'
-  },
-  // Úprava serializace požadavku včetně těla
-  serializers: {
-    req: (req) => {
-      // Základní informace o požadavku
-      const reqInfo = {
-        id: req.id,
-        method: req.method,
-        url: req.url,
-        query: req.query,
-        params: req.params,
-        // Přidání těla požadavku z raw objektu
-        body: req.raw?.body
-      }
-
-      // Pokud tělo obsahuje citlivé údaje, můžeme je maskovat
-      if (reqInfo.body && typeof reqInfo.body === 'object') {
-        if (reqInfo.body.password)
-          reqInfo.body.password = '[REDACTED]'
-        if (reqInfo.body.token)
-          reqInfo.body.token = '[REDACTED]'
-        if (reqInfo.body.apiToken)
-          reqInfo.body.apiToken = '[REDACTED]'
-      }
-
-      return reqInfo
-    },
-  },
-  // Automaticky logovat při dokončení odpovědi
-  autoLogging: true,
-})
-```
-
 ## Kontrola neaktivity
 
-Služba automaticky ukončuje neaktivní time entries:
+SessionManager automaticky ukončuje neaktivní sessions:
 
 1. Při každém heartbeatu je naplánována kontrola neaktivity pomocí `setTimeout`
-2. Pokud není detekována aktivita po dobu delší než je nastavený timeout (výchozí 120 sekund), ukončí aktuální time entry
-3. Při ukončení time entry je vytvořen popis zahrnující:
-   - Čas strávený v IDE
-   - Čas strávený v prohlížeči
-   - Statistiky o změnách v kódu (pokud jsou dostupné)
+2. Pokud není detekována aktivita po dobu delší než je nastavený timeout (výchozí 120 sekund), ukončí aktuální session
+3. Při ukončení session je aktualizován záznam v Notion s koncovým časem a všemi statistikami:
+   - Čas strávený v IDE (v minutách)
+   - Čas strávený v prohlížeči (v minutách)
+   - Statistiky o změnách v kódu (filesChanged, linesAdded, linesRemoved)
+
+## Číslování sessions
+
+SessionManager používá sekvenční číslování sessions v rámci každého měsíce:
+
+1. Při inicializaci nebo vytvoření první session získá počet existujících sessions v aktuálním měsíci z Notion
+2. Pro každou novou session inkrementuje čítač a používá ho v názvu ve formátu "Session YYYY-MM #NNN"
+3. Tento přístup zajišťuje přehledné a chronologické řazení sessions
 
 ## Nasazení
 
@@ -324,7 +337,7 @@ Serverová aplikace je nasazena pomocí PM2 process manageru. Konfigurace je v s
 module.exports = {
   apps: [
     {
-      name: 'toggl-auto-tracker',
+      name: 'devlog-server',
       script: 'dist/index.js',
       instances: 1,
       autorestart: true,
@@ -357,75 +370,7 @@ Tato konfigurace zajišťuje:
 
 ### Deployment Skript
 
-Pro automatizované nasazení serveru je k dispozici skript `scripts/deploy.sh`:
-
-```bash
-#!/bin/bash
-# Deployment skript pro Toggl Auto Tracker server
-
-# Konfigurace
-SERVER_HOST="n40l"  # Použití SSH aliasu z ~/.ssh/config
-SERVER_PATH="/home/brojor/production/toggl-auto-tracker"  # Cesta na serveru
-TEMP_DIR="/tmp/toggl-deploy"  # Dočasný adresář pro tarbally
-
-# Funkce pro výpis barevných zpráv
-echo_step() {
-  echo -e "\033[1;34m>> $1\033[0m"
-}
-
-echo_success() {
-  echo -e "\033[1;32m✓ $1\033[0m"
-}
-
-# Kontrola přítomnosti potřebných nástrojů
-command -v jq >/dev/null 2>&1 || { echo >&2 "jq není nainstalován. Nainstalujte ho pomocí 'brew install jq'"; exit 1; }
-
-# 0. Příprava lokálního prostředí
-echo_step "Příprava lokálního prostředí..."
-mkdir -p $TEMP_DIR
-rm -rf $TEMP_DIR/*
-
-# 1. Build aplikace
-echo_step "Buildování aplikace..."
-pnpm -r --filter="@devlog/server" build
-pnpm -r --filter="@devlog/shared" build
-
-# 2. Zabalení shared balíčku
-echo_step "Zabalení shared balíčku..."
-cd ../shared
-pnpm pack --pack-destination $TEMP_DIR
-SHARED_PACKAGE=$(ls -1 $TEMP_DIR/*.tgz | xargs basename)
-cd ../server
-
-# 3. Úprava package.json pro produkční nasazení
-echo_step "Úprava package.json pro produkční nasazení..."
-jq --arg shared_pkg "file:./$SHARED_PACKAGE" '.dependencies."@devlog/shared" = $shared_pkg' package.json > $TEMP_DIR/package.json
-
-# 4. Příprava a kopírování souborů na server
-echo_step "Příprava a kopírování souborů na server..."
-# Vytvoření adresářové struktury na serveru
-ssh $SERVER_HOST "mkdir -p $SERVER_PATH/dist $SERVER_PATH/logs"
-
-# Synchronizace souborů v jednom kroku
-rsync -rtvz --delete dist/ $SERVER_HOST:$SERVER_PATH/dist/
-rsync -rtvz $TEMP_DIR/package.json ecosystem.config.cjs $TEMP_DIR/*.tgz $SERVER_HOST:$SERVER_PATH/
-
-# 5. Instalace závislostí a restart aplikace
-echo_step "Instalace závislostí a restart aplikace..."
-ssh $SERVER_HOST "cd $SERVER_PATH && pnpm install --prod && pm2 start ecosystem.config.cjs --update-env"
-
-# 6. Úklid
-echo_step "Úklid dočasných souborů..."
-rm -rf $TEMP_DIR
-
-echo_success "Deployment dokončen!"
-```
-
-Použití deployment skriptu:
-```bash
-cd packages/server
-pnpm deploy
-```
+Pro automatizované nasazení serveru je k dispozici skript `scripts/deploy.sh`.
 
 ### Požadavky na server
 
@@ -461,8 +406,8 @@ Vytvoří optimalizovanou verzi aplikace a spustí ji.
 ssh n40l
 
 # Zobrazit logy z PM2
-pm2 logs toggl-auto-tracker
+pm2 logs devlog-server
 
 # Nebo přímý přístup k log souborům
-less /home/brojor/production/toggl-auto-tracker/logs/combined.log
+less /home/brojor/production/devlog/logs/combined.log
 ```

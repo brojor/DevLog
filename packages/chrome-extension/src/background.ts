@@ -2,6 +2,9 @@
 /// <reference types="chrome" />
 /// <reference types="vite/client" />
 
+import type { Heartbeat } from '@devlog/shared'
+import { HeartbeatSource } from '@devlog/shared'
+
 // Konfigurace heartbeatu
 const API_URL = `${import.meta.env.VITE_API_URL}/api/heartbeat`
 
@@ -10,9 +13,9 @@ console.log('Toggl Auto Tracker background service worker initialized')
 // Funkce pro odeslání heartbeatu na server
 async function sendHeartbeat(timestamp: number) {
   try {
-    const heartbeatData = {
+    const heartbeatData: Heartbeat = {
       timestamp: timestamp || Date.now(),
-      source: 'chrome',
+      source: HeartbeatSource.CHROME,
     }
 
     console.log('Sending heartbeat:', heartbeatData)

@@ -1,12 +1,12 @@
 import pino from 'pino'
-import { config } from './index'
+import { appConfig } from './index'
 
 // Základní konfigurace pro Pino logger
 const loggerConfig: pino.LoggerOptions = {
-  level: config.server.env === 'production' ? 'info' : 'debug',
+  level: appConfig.server.env === 'production' ? 'info' : 'debug',
   // V produkčním prostředí používáme jednoduchý formát JSON pro efektivitu
   // V development prostředí používáme pino-pretty pro čitelnější logy
-  transport: config.server.env === 'development'
+  transport: appConfig.server.env === 'development'
     ? {
         target: 'pino-pretty',
         options: {
@@ -18,8 +18,8 @@ const loggerConfig: pino.LoggerOptions = {
     : undefined,
   // Přidáváme základní metadata pro všechny logy
   base: {
-    env: config.server.env,
-    service: 'toggl-auto-tracker-server',
+    env: appConfig.server.env,
+    service: 'devlog-server',
   },
 }
 

@@ -1,5 +1,6 @@
 import type { Heartbeat } from '@devlog/shared'
 import type { ApiClient } from './ApiClient'
+import { HeartbeatSource } from '@devlog/shared'
 import * as vscode from 'vscode'
 import { ProjectInfoProvider } from './ProjectInfoProvider'
 
@@ -93,7 +94,7 @@ export class ActivityTracker {
         // Připravíme data pro heartbeat
         const heartbeatData: Heartbeat = {
           timestamp: this.lastActivity,
-          source: 'vscode',
+          source: HeartbeatSource.VSCODE,
           projectName: this.currentProjectName,
         }
 

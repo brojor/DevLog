@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@devlog/shared": "workspace:^",
+    "@notionhq/client": "^2.2.16",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "pino": "^9.6.0",

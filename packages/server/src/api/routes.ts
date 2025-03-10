@@ -1,6 +1,5 @@
-import type { CodeStats, Heartbeat } from '@devlog/shared'
+import type { CodeStats, CommitInfo, Heartbeat } from '@devlog/shared'
 import type { Request, Response } from 'express'
-import type { CommitInfo } from '../types'
 import { Router } from 'express'
 import { logger } from '../config/logger'
 import { timeTrackingService } from '../services/timeTrackingService'
@@ -25,7 +24,7 @@ router.post('/heartbeat', async (req: HeartbeatRequest, res: Response) => {
 
   // Základní validace
   if (!heartbeat.timestamp || !heartbeat.source) {
-    logger.warn({ heartbeat }, 'Přijat neplatný heartbeat')
+    logger.warn({ msg: 'Přijat neplatný heartbeat', heartbeat })
     return res.status(400).json({ error: 'Neplatný heartbeat' })
   }
 
@@ -39,7 +38,7 @@ router.post('/heartbeat', async (req: HeartbeatRequest, res: Response) => {
     })
   }
   catch (error) {
-    logger.error({ error, heartbeat }, 'Chyba při zpracování heartbeatu')
+    logger.error({ msg: 'Chyba při zpracování heartbeatu', err: error, heartbeat })
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })
@@ -52,24 +51,22 @@ router.post('/stats', async (req: CodeStatsRequest, res: Response) => {
   if (codeStats.filesChanged === undefined
     || codeStats.linesAdded === undefined
     || codeStats.linesRemoved === undefined
-    || !codeStats.timestamp) {
-    logger.warn({ codeStats }, 'Přijaty neplatné statistiky kódu')
+  ) {
+    logger.warn({ msg: 'Přijaty neplatné statistiky kódu', codeStats })
     return res.status(400).json({ error: 'Neplatné statistiky kódu' })
   }
 
   // Zpracování statistik přes službu
   try {
-    const sessionId = await timeTrackingService.processCodeStats(codeStats)
+    // Nová implementace updateCodeStats nevrací sessionId
+    await timeTrackingService.processCodeStats(codeStats)
 
-    // Vždy vracíme sessionId, i když je 0 (neaktivní session)
-    // Klient si sám zkontroluje, zda se ID změnilo
     return res.status(200).json({
       received: true,
-      sessionId,
     })
   }
   catch (error) {
-    logger.error({ error, codeStats }, 'Chyba při zpracování statistik kódu')
+    logger.error({ msg: 'Chyba při zpracování statistik kódu', err: error, codeStats })
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })
@@ -78,19 +75,23 @@ router.post('/stats', async (req: CodeStatsRequest, res: Response) => {
 router.post('/commit', async (req: CommitRequest, res: Response) => {
   const commitInfo = req.body
 
-  // Základní validace
-  if (!commitInfo.message || !commitInfo.timestamp) {
-    logger.warn({ commitInfo }, 'Přijaty neplatné informace o commitu')
+  // Rozšířená validace pro novou strukturu CommitInfo
+  if (!commitInfo.message || !commitInfo.timestamp || !commitInfo.hash
+    || !commitInfo.repository || !commitInfo.repository.name || !commitInfo.repository.owner) {
+    logger.warn({ msg: 'Přijaty neplatné informace o commitu', commitInfo })
     return res.status(400).json({ error: 'Neplatné informace o commitu' })
   }
 
   // Zpracování commitu přes službu
   try {
-    await timeTrackingService.processCommit(commitInfo)
-    return res.status(200).json({ received: true })
+    const taskId = await timeTrackingService.processCommit(commitInfo)
+    return res.status(200).json({
+      received: true,
+      taskId,
+    })
   }
   catch (error) {
-    logger.error({ error, commitInfo }, 'Chyba při zpracování commitu')
+    logger.error({ msg: 'Chyba při zpracování commitu', err: error, commitInfo })
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })

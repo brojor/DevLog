@@ -1,30 +1,28 @@
+import type { AppConfig } from '../types'
 import { env } from 'node:process'
 import dotenv from 'dotenv'
-
 // Načtení proměnných prostředí
 dotenv.config()
 
-export const config = {
+export const appConfig = {
   // Server nastavení
   server: {
-    port: env.PORT || 3000,
+    port: Number(env.PORT) || 3000,
     env: env.NODE_ENV || 'development',
   },
 
-  // Toggl API nastavení
-  toggl: {
-    apiUrl: 'https://api.track.toggl.com/api/v9',
-    apiToken: env.TOGGL_API_TOKEN || '',
-    workspaceId: env.TOGGL_WORKSPACE_ID || '',
-    projectIdsMap: {
-      'knihozrout': 209468968,
-      'toggl-auto-tracker': 209496908,
-    },
+  // Notion API nastavení
+  notion: {
+    apiToken: env.NOTION_API_TOKEN || '',
+    projectsDatabaseId: env.NOTION_PROJECTS_DATABASE_ID || '',
+    tasksDatabaseId: env.NOTION_TASKS_DATABASE_ID || '',
+    sessionsDatabaseId: env.NOTION_SESSIONS_DATABASE_ID || '',
   },
 
   // Nastavení aplikace
-  app: {
-    heartbeatInterval: 5, // v sekundách
-    inactivityTimeout: 120, // v sekundách, ukončí time entry po 2 minutách neaktivity
+  session: {
+    heartbeatInterval: 5,
+    inactivityTimeout: 120,
+    minSessionDuration: 60,
   },
-}
+} satisfies AppConfig

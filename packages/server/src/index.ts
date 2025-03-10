@@ -1,11 +1,11 @@
 import express from 'express'
 import apiRoutes from './api/routes'
-import { config } from './config'
+import { appConfig } from './config'
 import { logger } from './config/logger'
 import { httpLogger } from './middlewares/logger'
 
 // Definice portu
-const PORT = config.server.port
+const PORT = appConfig.server.port
 
 // Vytvoření Express aplikace
 const app = express()
