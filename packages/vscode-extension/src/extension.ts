@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
   statsReporter.start()
 
   // Inicializace podpory pro Git commity
-  gitSupportManager = new GitSupportManager(apiClient, gitStashManager)
+  gitSupportManager = new GitSupportManager(apiClient)
   gitSupportManager.initialize().catch(err =>
     console.error('Chyba při inicializaci Git podpory:', err),
   )

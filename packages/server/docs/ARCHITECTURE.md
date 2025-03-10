@@ -213,7 +213,7 @@ Zaznamenává časové úseky práce:
 - Name - Název session ve formátu "Session YYYY-MM #NNN"
 - Task - Relation na task
 - Date - Časové rozmezí (start-end)
-- Ide Time - Čas strávený v IDE (v minutách)
+- IDE Time - Čas strávený v IDE (v minutách)
 - Browser Time - Čas strávený v prohlížeči (v minutách)
 - Files Changed - Počet změněných souborů
 - Lines Added - Počet přidaných řádků

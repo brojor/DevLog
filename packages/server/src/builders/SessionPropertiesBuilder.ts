@@ -5,7 +5,7 @@ export default class SessionPropertiesBuilder extends PagePropertiesBuilder<Sess
   constructor() {
     super()
     // Inicializace číselných hodnot s defaultem 0
-    this.properties['Ide Time'] = { number: 0 }
+    this.properties['IDE Time'] = { number: 0 }
     this.properties['Browser Time'] = { number: 0 }
     this.properties['Files Changed'] = { number: 0 }
     this.properties['Lines Added'] = { number: 0 }
@@ -60,7 +60,7 @@ export default class SessionPropertiesBuilder extends PagePropertiesBuilder<Sess
   }
 
   ideTime(time: number): this {
-    this.properties['Ide Time'] = { number: time }
+    this.properties['IDE Time'] = { number: time }
     return this
   }
 

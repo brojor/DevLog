@@ -52,5 +52,8 @@
     "@types/vscode": "^1.96.0",
     "typescript": "^5.7.3",
     "vite": "^6.2.0"
-  }
+  },
+  "extensionDependencies": [
+    "vscode.git"
+  ]
 }

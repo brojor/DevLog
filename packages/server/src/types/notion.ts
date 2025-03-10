@@ -71,7 +71,7 @@ export interface SessionInput {
 export interface SessionProperties extends PageProperties {
   'Task'?: { relation: [{ id: string }] }
   'Date': { date: { start?: string, end?: string } } // ISO 8601 string
-  'Ide Time'?: { number: number }
+  'IDE Time'?: { number: number }
   'Browser Time'?: { number: number }
   'Files Changed'?: { number: number }
   'Lines Added'?: { number: number }
