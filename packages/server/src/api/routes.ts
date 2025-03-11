@@ -24,7 +24,7 @@ router.post('/heartbeat', async (req: HeartbeatRequest, res: Response) => {
 
   // Základní validace
   if (!heartbeat.timestamp || !heartbeat.source) {
-    logger.warn({ msg: 'Přijat neplatný heartbeat', heartbeat })
+    logger.warn({ heartbeat }, 'Přijat neplatný heartbeat')
     return res.status(400).json({ error: 'Neplatný heartbeat' })
   }
 
@@ -38,7 +38,7 @@ router.post('/heartbeat', async (req: HeartbeatRequest, res: Response) => {
     })
   }
   catch (error) {
-    logger.error({ msg: 'Chyba při zpracování heartbeatu', err: error, heartbeat })
+    logger.error({ err: error, heartbeat }, 'Chyba při zpracování heartbeatu')
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })
@@ -52,7 +52,7 @@ router.post('/stats', async (req: CodeStatsRequest, res: Response) => {
     || codeStats.linesAdded === undefined
     || codeStats.linesRemoved === undefined
   ) {
-    logger.warn({ msg: 'Přijaty neplatné statistiky kódu', codeStats })
+    logger.warn({ codeStats }, 'Přijaty neplatné statistiky kódu')
     return res.status(400).json({ error: 'Neplatné statistiky kódu' })
   }
 
@@ -66,7 +66,7 @@ router.post('/stats', async (req: CodeStatsRequest, res: Response) => {
     })
   }
   catch (error) {
-    logger.error({ msg: 'Chyba při zpracování statistik kódu', err: error, codeStats })
+    logger.error({ err: error, codeStats }, 'Chyba při zpracování statistik kódu')
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })
@@ -78,7 +78,7 @@ router.post('/commit', async (req: CommitRequest, res: Response) => {
   // Rozšířená validace pro novou strukturu CommitInfo
   if (!commitInfo.message || !commitInfo.timestamp || !commitInfo.hash
     || !commitInfo.repository || !commitInfo.repository.name || !commitInfo.repository.owner) {
-    logger.warn({ msg: 'Přijaty neplatné informace o commitu', commitInfo })
+    logger.warn({ commitInfo }, 'Přijaty neplatné informace o commitu')
     return res.status(400).json({ error: 'Neplatné informace o commitu' })
   }
 
@@ -91,7 +91,7 @@ router.post('/commit', async (req: CommitRequest, res: Response) => {
     })
   }
   catch (error) {
-    logger.error({ msg: 'Chyba při zpracování commitu', err: error, commitInfo })
+    logger.error({ err: error, commitInfo }, 'Chyba při zpracování commitu')
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })

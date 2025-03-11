@@ -67,7 +67,13 @@ export class TimeTrackingService {
       return this.taskManager.processCommit(commitInfo, projectId)
     }
     catch (error) {
-      logger.error('Error processing commit', { error, commitInfo })
+      logger.error(
+        {
+          error,
+          commitInfo,
+        },
+        'Error processing commit',
+      )
       throw error
     }
   }

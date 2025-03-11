@@ -52,11 +52,14 @@ export class TaskManager {
         dueDate: commitInfo.timestamp,
       }
 
-      logger.info('Creating new task from commit', {
-        subject,
-        hash: commitInfo.hash,
-        projectId,
-      })
+      logger.info(
+        {
+          subject,
+          hash: commitInfo.hash,
+          projectId,
+        },
+        'Creating new task from commit',
+      )
 
       // Vytvoříme task v Notion
       const taskId = await this.notionService.createTask(taskInput)
@@ -67,7 +70,13 @@ export class TaskManager {
       return taskId
     }
     catch (error) {
-      logger.error('Error processing commit', { error, commitInfo })
+      logger.error(
+        {
+          error,
+          commitInfo,
+        },
+        'Error processing commit',
+      )
       throw error
     }
   }
@@ -82,14 +91,20 @@ export class TaskManager {
       const pendingSessionIds = this.sessionManager.pendingSessionIds
 
       if (pendingSessionIds.length === 0) {
-        logger.debug('No pending sessions to link with task', { taskId })
+        logger.debug(
+          { taskId },
+          'No pending sessions to link with task',
+        )
         return
       }
 
-      logger.info('Linking pending sessions to task', {
-        taskId,
-        sessionCount: pendingSessionIds.length,
-      })
+      logger.info(
+        {
+          taskId,
+          sessionCount: pendingSessionIds.length,
+        },
+        'Linking pending sessions to task',
+      )
 
       await this.notionService.updateTask(taskId, {
         sessionIds: pendingSessionIds,
@@ -98,7 +113,13 @@ export class TaskManager {
       this.sessionManager.clearPendingSessions()
     }
     catch (error) {
-      logger.error('Error linking sessions to task', { error, taskId })
+      logger.error(
+        {
+          error,
+          taskId,
+        },
+        'Error linking sessions to task',
+      )
       throw error
     }
   }

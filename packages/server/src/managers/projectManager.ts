@@ -32,7 +32,7 @@ export class ProjectManager {
       const existingProjectId = await this.notionService.findProjectBySlug(slug)
 
       if (existingProjectId) {
-        logger.debug('Found existing project', { slug, projectId: existingProjectId })
+        logger.debug({ slug, projectId: existingProjectId }, 'Found existing project')
         return existingProjectId
       }
 
@@ -49,16 +49,26 @@ export class ProjectManager {
         startDate: repoDetails.created_at || Date.now(),
       })
 
-      logger.info('Created new project', {
-        slug,
-        name: repoDetails.name || repoName,
-        projectId: newProjectId,
-      })
+      logger.info(
+        {
+          slug,
+          name: repoDetails.name || repoName,
+          projectId: newProjectId,
+        },
+        'Created new project',
+      )
 
       return newProjectId
     }
     catch (error) {
-      logger.error('Error getting or creating project from repo', { error, repoName, repoOwner })
+      logger.error(
+        {
+          error,
+          repoName,
+          repoOwner,
+        },
+        'Error getting or creating project from repo',
+      )
       throw error
     }
   }
@@ -75,18 +85,28 @@ export class ProjectManager {
       const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}`)
 
       if (!response.ok) {
-        logger.warn('GitHub API returned non-OK response', {
-          status: response.status,
-          repoName,
-          repoOwner,
-        })
+        logger.warn(
+          {
+            status: response.status,
+            repoName,
+            repoOwner,
+          },
+          'GitHub API returned non-OK response',
+        )
         return {}
       }
 
       return await response.json()
     }
     catch (error) {
-      logger.error('Error fetching repo details from GitHub', { error, repoName, repoOwner })
+      logger.error(
+        {
+          error,
+          repoName,
+          repoOwner,
+        },
+        'Error fetching repo details from GitHub',
+      )
       // Vrátíme prázdný objekt, aby metoda mohla pokračovat i když GitHub API selže
       return {}
     }

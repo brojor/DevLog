@@ -64,22 +64,26 @@ export class SessionManager {
         return this.createNewSession()
       }
 
-      logger.debug({
-        msg: 'Processed heartbeat',
-        source: heartbeat.source,
-        sessionId: this.activeSession.id,
-        ideTime: this.activeSession.ideTime,
-        browserTime: this.activeSession.browserTime,
-      })
+      logger.debug(
+        {
+          source: heartbeat.source,
+          sessionId: this.activeSession.id,
+          ideTime: this.activeSession.ideTime,
+          browserTime: this.activeSession.browserTime,
+        },
+        'Processed heartbeat',
+      )
 
       return this.activeSession.id
     }
     catch (error) {
-      logger.error({
-        msg: 'Error processing heartbeat',
-        err: error,
-        heartbeat,
-      })
+      logger.error(
+        {
+          err: error,
+          heartbeat,
+        },
+        'Error processing heartbeat',
+      )
       throw error
     }
   }
@@ -103,18 +107,22 @@ export class SessionManager {
       this.activeSession.codeStats.linesAdded = stats.linesAdded
       this.activeSession.codeStats.linesRemoved = stats.linesRemoved
 
-      logger.debug({
-        msg: 'Updated code stats',
-        sessionId: this.activeSession.id,
-        codeStats: this.activeSession.codeStats,
-      })
+      logger.debug(
+        {
+          sessionId: this.activeSession.id,
+          codeStats: this.activeSession.codeStats,
+        },
+        'Updated code stats',
+      )
     }
     catch (error) {
-      logger.error({
-        msg: 'Error updating code stats',
-        err: error,
-        stats,
-      })
+      logger.error(
+        {
+          err: error,
+          stats,
+        },
+        'Error updating code stats',
+      )
       throw error
     }
   }
@@ -159,18 +167,22 @@ export class SessionManager {
       // Resetujeme aktivní session
       this.resetActiveSession()
 
-      logger.info({
-        msg: 'Session ended',
-        sessionId,
-        pendingSessions: this.pendingSessions.length,
-      })
+      logger.info(
+        {
+          sessionId,
+          pendingSessions: this.pendingSessions.length,
+        },
+        'Session ended',
+      )
     }
     catch (error) {
-      logger.error({
-        msg: 'Error ending current session',
-        err: error,
-        sessionId: this.activeSession.id,
-      })
+      logger.error(
+        {
+          err: error,
+          sessionId: this.activeSession.id,
+        },
+        'Error ending current session',
+      )
       throw error
     }
   }
@@ -180,10 +192,12 @@ export class SessionManager {
    * This method is called after processing a commit when sessions are assigned to a task.
    */
   clearPendingSessions(): void {
-    logger.debug({
-      msg: 'Clearing pending sessions',
-      count: this.pendingSessions.length,
-    })
+    logger.debug(
+      {
+        count: this.pendingSessions.length,
+      },
+      'Clearing pending sessions',
+    )
     this.pendingSessions = []
   }
 
@@ -232,18 +246,22 @@ export class SessionManager {
       // Aktualizujeme aktivní session
       this.activeSession.id = sessionId
 
-      logger.info({
-        msg: 'Created new session',
-        sessionId,
-        name: sessionName,
-      })
+      logger.info(
+        {
+          sessionId,
+          name: sessionName,
+        },
+        'Created new session',
+      )
       return sessionId
     }
     catch (error) {
-      logger.error({
-        msg: 'Error creating new session',
-        err: error,
-      })
+      logger.error(
+        {
+          err: error,
+        },
+        'Error creating new session',
+      )
       throw error
     }
   }
@@ -289,16 +307,20 @@ export class SessionManager {
 
       // Nastavíme counter na počet existujících sessions
       this.sessionCounter = sessionsCount
-      logger.info({
-        msg: 'Initialized session counter',
-        count: sessionsCount,
-      })
+      logger.info(
+        {
+          count: sessionsCount,
+        },
+        'Initialized session counter',
+      )
     }
     catch (error) {
-      logger.error({
-        msg: 'Error initializing session counter',
-        err: error,
-      })
+      logger.error(
+        {
+          err: error,
+        },
+        'Error initializing session counter',
+      )
       // V případě chyby necháme výchozí hodnotu 0
     }
   }
