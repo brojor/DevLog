@@ -1,4 +1,5 @@
 // Základní typy pro Notion
+export type DateInput = Date | string | number
 export interface NotionConfig {
   apiToken: string
   projectsDatabaseId: string
@@ -22,7 +23,7 @@ export interface ProjectInput {
   description?: string
   status?: 'Active' | 'Completed' | 'On Hold'
   repository?: string
-  startDate?: Date | string
+  startDate?: DateInput
   taskIds?: string[]
 }
 
@@ -42,7 +43,7 @@ export interface TaskInput {
   status?: 'Not Started' | 'In Progress' | 'Done'
   commitUrl?: string
   details?: string
-  dueDate?: Date | string
+  dueDate?: DateInput
   sessionIds?: string[]
 }
 
@@ -59,7 +60,7 @@ export interface TaskProperties extends PageProperties {
 export interface SessionInput {
   name: string
   taskId?: string
-  date: { start: Date | string, end?: Date | string }
+  date: { start: DateInput, end?: DateInput }
   ideTime?: number
   browserTime?: number
   filesChanged?: number

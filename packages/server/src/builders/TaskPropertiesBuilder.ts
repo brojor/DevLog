@@ -1,4 +1,5 @@
-import type { TaskInput, TaskProperties } from '../types/notion'
+import type { DateInput, TaskInput, TaskProperties } from '../types/notion'
+import { convertToISO8601 } from '../utilis/date'
 import PagePropertiesBuilder from './PagePropertiesBuilder'
 
 export default class TaskPropertiesBuilder extends PagePropertiesBuilder<TaskProperties> {
@@ -53,8 +54,8 @@ export default class TaskPropertiesBuilder extends PagePropertiesBuilder<TaskPro
     return this
   }
 
-  dueDate(date: Date | string): this {
-    const formattedDate = date instanceof Date ? date.toISOString() : date
+  dueDate(date: DateInput): this {
+    const formattedDate = convertToISO8601(date)
 
     this.properties['Due Date'] = {
       date: { start: formattedDate },

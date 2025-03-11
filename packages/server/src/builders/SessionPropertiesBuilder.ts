@@ -1,4 +1,5 @@
-import type { MinimalRequiredSessionInput, SessionProperties } from '../types/notion'
+import type { DateInput, MinimalRequiredSessionInput, SessionProperties } from '../types/notion'
+import { convertToISO8601 } from '../utilis/date'
 import PagePropertiesBuilder from './PagePropertiesBuilder'
 
 export default class SessionPropertiesBuilder extends PagePropertiesBuilder<SessionProperties> {
@@ -44,13 +45,13 @@ export default class SessionPropertiesBuilder extends PagePropertiesBuilder<Sess
     return this
   }
 
-  date(date: { start: Date | string, end?: Date | string }): this {
-    const start = date.start instanceof Date ? date.start.toISOString() : date.start
-    const end = date.end instanceof Date ? date.end?.toISOString() : date.end
+  date(date: { start: DateInput, end?: DateInput }): this {
+    const start = convertToISO8601(date.start)
+    const end = date.end ? convertToISO8601(date.end) : undefined
 
     this.properties.Date = {
       date: {
-        ...(start && { start }),
+        start,
         ...(end && { end }),
       },
     }

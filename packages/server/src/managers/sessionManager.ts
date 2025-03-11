@@ -141,7 +141,7 @@ export class SessionManager {
       await this.notionService.updateSession(this.activeSession.id, {
         date: {
           start: this.activeSession.startDate,
-          end: new Date(this.activeSession.lastActivity).toISOString(),
+          end: this.activeSession.lastActivity,
         },
         ideTime: Math.round(this.activeSession.ideTime / 60),
         browserTime: Math.round(this.activeSession.browserTime / 60),

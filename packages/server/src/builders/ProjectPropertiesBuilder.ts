@@ -1,4 +1,5 @@
-import type { ProjectInput, ProjectProperties } from '../types/notion'
+import type { DateInput, ProjectInput, ProjectProperties } from '../types/notion'
+import { convertToISO8601 } from '../utilis/date'
 import PagePropertiesBuilder from './PagePropertiesBuilder'
 
 export default class ProjectPropertiesBuilder extends PagePropertiesBuilder<ProjectProperties> {
@@ -53,8 +54,8 @@ export default class ProjectPropertiesBuilder extends PagePropertiesBuilder<Proj
     return this
   }
 
-  startDate(date: Date | string): this {
-    const formattedDate = date instanceof Date ? date.toISOString() : date
+  startDate(date: DateInput): this {
+    const formattedDate = convertToISO8601(date)
 
     this.properties['Start Date'] = {
       date: { start: formattedDate },

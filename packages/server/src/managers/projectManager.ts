@@ -46,7 +46,7 @@ export class ProjectManager {
         description: repoDetails.description,
         repository: repoDetails.html_url || `https://github.com/${repoOwner}/${repoName}`,
         status: 'Active', // Výchozí status pro nové projekty
-        startDate: repoDetails.created_at ? new Date(repoDetails.created_at).toISOString() : new Date().toISOString(),
+        startDate: repoDetails.created_at || Date.now(),
       })
 
       logger.info('Created new project', {

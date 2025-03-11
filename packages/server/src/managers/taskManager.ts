@@ -49,7 +49,7 @@ export class TaskManager {
         projectId,
         status: 'Done',
         commitUrl,
-        dueDate: new Date(commitInfo.timestamp).toISOString(),
+        dueDate: commitInfo.timestamp,
       }
 
       logger.info('Creating new task from commit', {
