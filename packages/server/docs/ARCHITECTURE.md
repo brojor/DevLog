@@ -29,6 +29,8 @@ Serverová část projektu DevLog slouží jako centrální komponenta pro zprac
 │   │   ├── projectManager.ts       # Správa projektů
 │   │   ├── sessionManager.ts       # Správa sessions
 │   │   └── taskManager.ts          # Správa tasků
+│   ├── trackers/         # Sledovače aktivit a času
+│   │   └── ideTimeTracker.ts       # Sledování času v IDE
 │   ├── middlewares/     # Middlewary pro Express
 │   │   └── logger.ts    # HTTP logging middleware
 │   ├── services/        # Služby
@@ -109,7 +111,7 @@ Serverová část DevLog využívá modulární architekturu s jasně oddělený
 
 1. **SessionManager** - Správa sessions
    - Zpracování heartbeatů z klientských rozšíření
-   - Sledování aktivního času v IDE a prohlížeči
+   - Koordinace sledování času v IDE a prohlížeči
    - Automatické ukončování sessions při neaktivitě
    - Aktualizace statistik o změnách v kódu
 
@@ -122,6 +124,25 @@ Serverová část DevLog využívá modulární architekturu s jasně oddělený
    - Vyhledávání existujících projektů podle slugu
    - Vytváření nových projektů na základě informací o repozitáři
    - Získávání detailů o repozitáři z GitHub API
+
+### Sledovače
+
+1. **IdeTimeTracker** - Přesné sledování času v IDE
+   - Zpracování informací o stavu okna VS Code
+   - Automatická detekce neaktivity uživatele
+   - Poskytování přesných statistik o času stráveném v IDE
+
+## Sledování času v IDE
+
+`IdeTimeTracker` poskytuje přesné a spolehlivé sledování času stráveného v IDE. Řeší následující scénáře:
+
+1. **Přepínání mezi aplikacemi**: Automatické pozastavení a obnovení sledování
+2. **Neaktivita uživatele**: Ukončení sledování po uplynutí nastaveného limitu
+3. **Interakce s chatem**: Správné sledování času při používání chatu ve VS Code
+4. **Uspání počítače**: Správné zpracování dlouhých intervalů bez aktivity
+5. **Nestabilní síťové připojení**: Konzistentní sledování času i při výpadcích
+
+Tracker zpracovává informace o stavu okna (focus, aktivita) z VS Code rozšíření a na základě těchto dat řídí časové intervaly. Automatický inactivity timer zajišťuje ukončení sledování při nepřijetí heartbeatu v daném limitu.
 
 ## API Endpointy
 
@@ -310,14 +331,21 @@ export const logger = pino(loggerConfig)
 
 ## Kontrola neaktivity
 
-SessionManager automaticky ukončuje neaktivní sessions:
+Systém používá dva mechanismy pro detekci neaktivity:
 
-1. Při každém heartbeatu je naplánována kontrola neaktivity pomocí `setTimeout`
-2. Pokud není detekována aktivita po dobu delší než je nastavený timeout (výchozí 120 sekund), ukončí aktuální session
-3. Při ukončení session je aktualizován záznam v Notion s koncovým časem a všemi statistikami:
-   - Čas strávený v IDE (v minutách)
-   - Čas strávený v prohlížeči (v minutách)
-   - Statistiky o změnách v kódu (filesChanged, linesAdded, linesRemoved)
+1. **SessionManager timeout**:
+   - Při každém heartbeatu je naplánována kontrola neaktivity pomocí `setTimeout`
+   - Pokud není detekována aktivita po dobu delší než je nastavený timeout (výchozí 120 sekund), ukončí aktuální session
+
+2. **IdeTimeTracker inactivity timer**:
+   - Paralelní mechanismus specifický pro sledování času v IDE
+   - Automaticky ukončí sledování času, pokud nepřijde heartbeat v nastaveném limitu
+   - Reaguje na změny stavu okna (fokus, aktivita)
+
+Při ukončení session je aktualizován záznam v Notion s koncovým časem a všemi statistikami:
+- Čas strávený v IDE (v minutách)
+- Čas strávený v prohlížeči (v minutách)
+- Statistiky o změnách v kódu (filesChanged, linesAdded, linesRemoved)
 
 ## Číslování sessions
 
