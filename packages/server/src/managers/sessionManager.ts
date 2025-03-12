@@ -1,5 +1,6 @@
 import type { CodeStats, Heartbeat } from '@devlog/shared'
 import type NotionService from '../services/notionService'
+import type { IdeTimeTracker } from '../trackers/ideTimeTracker'
 import type { ActiveSession, SessionConfig } from '../types'
 import type { SessionInput } from '../types/notion'
 import { HeartbeatSource } from '@devlog/shared'
@@ -13,6 +14,7 @@ import { logger } from '../config/logger'
 export class SessionManager {
   private notionService: NotionService
   private config: SessionConfig
+  private ideTimeTracker: IdeTimeTracker
 
   // Samostatná property pro timeout
   private sessionTimeoutId?: NodeJS.Timeout
@@ -25,10 +27,16 @@ export class SessionManager {
   /**
    * Creates a new SessionManager instance
    * @param notionService NotionService instance for communication with Notion API
+   * @param ideTimeTracker IdeTimeTracker instance for tracking IDE time
    * @param config Optional configuration to override default values
    */
-  constructor(notionService: NotionService, config?: Partial<SessionConfig>) {
+  constructor(
+    notionService: NotionService,
+    ideTimeTracker: IdeTimeTracker,
+    config: Partial<SessionConfig> | undefined,
+  ) {
     this.notionService = notionService
+    this.ideTimeTracker = ideTimeTracker
     this.config = { ...appConfig.session, ...config }
 
     this.resetActiveSession()
@@ -46,13 +54,10 @@ export class SessionManager {
   async processHeartbeat(heartbeat: Heartbeat): Promise<string> {
     try {
       // Aktualizujeme čas poslední aktivity
-      this.activeSession.lastActivity = heartbeat.timestamp || Date.now()
+      this.activeSession.lastActivity = heartbeat.timestamp
 
       // Přidáme čas do příslušného čítače podle zdroje
-      if (heartbeat.source === HeartbeatSource.VSCODE) {
-        this.activeSession.ideTime += this.config.heartbeatInterval
-      }
-      else if (heartbeat.source === HeartbeatSource.CHROME) {
+      if (heartbeat.source === HeartbeatSource.CHROME) {
         this.activeSession.browserTime += this.config.heartbeatInterval
       }
 
@@ -68,7 +73,6 @@ export class SessionManager {
         {
           source: heartbeat.source,
           sessionId: this.activeSession.id,
-          ideTime: this.activeSession.ideTime,
           browserTime: this.activeSession.browserTime,
         },
         'Processed heartbeat',
@@ -151,12 +155,13 @@ export class SessionManager {
           start: this.activeSession.startDate,
           end: this.activeSession.lastActivity,
         },
-        ideTime: Math.round(this.activeSession.ideTime / 60),
+        ideTime: this.ideTimeTracker.timeInMinutes,
         browserTime: Math.round(this.activeSession.browserTime / 60),
         filesChanged: this.activeSession.codeStats.filesChanged,
         linesAdded: this.activeSession.codeStats.linesAdded,
         linesRemoved: this.activeSession.codeStats.linesRemoved,
       })
+      this.ideTimeTracker.reset()
 
       // Přidáme session do pending sessions
       this.pendingSessions.push(this.activeSession.id)
@@ -275,7 +280,6 @@ export class SessionManager {
       id: null,
       startDate: new Date().toISOString(),
       lastActivity: 0,
-      ideTime: 0,
       browserTime: 0,
       codeStats: {
         filesChanged: 0,

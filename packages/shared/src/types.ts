@@ -24,3 +24,13 @@ export interface CommitInfo {
     owner: string
   }
 }
+
+export interface WindowState {
+  focused: boolean
+  active: boolean
+}
+
+export interface WindowStateEvent {
+  windowState: WindowState
+  timestamp: number
+}

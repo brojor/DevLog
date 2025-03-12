@@ -4,7 +4,6 @@ export interface ActiveSession {
   id: string | null
   startDate: string
   lastActivity: number
-  ideTime: number
   browserTime: number
   codeStats: CodeStats
 }

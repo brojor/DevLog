@@ -1,11 +1,13 @@
-import type { CodeStats, CommitInfo, Heartbeat } from '@devlog/shared'
+import type { CodeStats, CommitInfo, Heartbeat, WindowStateEvent } from '@devlog/shared'
 import type NotionService from '../services/notionService'
-import type { SessionConfig } from '../types'
+import { HeartbeatSource } from '@devlog/shared'
+import { appConfig } from '../config'
 import { logger } from '../config/logger'
 import { ProjectManager } from '../managers/projectManager'
 import { SessionManager } from '../managers/sessionManager'
 import { TaskManager } from '../managers/taskManager'
 import { notionService } from '../services/notionService'
+import { IdeTimeTracker } from '../trackers/ideTimeTracker'
 
 /**
  * Main service for time and activity tracking.
@@ -15,18 +17,16 @@ export class TimeTrackingService {
   private sessionManager: SessionManager
   private taskManager: TaskManager
   private projectManager: ProjectManager
+  private ideTimeTracker: IdeTimeTracker
 
   /**
    * Creates a new TimeTrackingService instance
    * @param notionService NotionService instance for communication with Notion API
    * @param sessionConfig Optional configuration
    */
-  constructor(
-    notionService: NotionService,
-    sessionConfig?: Partial<SessionConfig>,
-  ) {
-    // Inicializace manažerů
-    this.sessionManager = new SessionManager(notionService, sessionConfig)
+  constructor(notionService: NotionService) {
+    this.ideTimeTracker = new IdeTimeTracker(appConfig.session.inactivityTimeout * 1000)
+    this.sessionManager = new SessionManager(notionService, this.ideTimeTracker, appConfig.session)
     this.projectManager = new ProjectManager(notionService)
     this.taskManager = new TaskManager(notionService, this.sessionManager)
 
@@ -39,6 +39,9 @@ export class TimeTrackingService {
    * @returns ID of active session
    */
   async processHeartbeat(heartbeat: Heartbeat): Promise<string> {
+    if (heartbeat.source === HeartbeatSource.VSCODE) {
+      this.ideTimeTracker.keepAlive(heartbeat.timestamp)
+    }
     return this.sessionManager.processHeartbeat(heartbeat)
   }
 
@@ -76,6 +79,14 @@ export class TimeTrackingService {
       )
       throw error
     }
+  }
+
+  /**
+   * Processes window state changes from VS Code
+   * @param windowStateEvent Window state change event
+   */
+  processWindowState(windowStateEvent: WindowStateEvent): void {
+    this.ideTimeTracker.processWindowState(windowStateEvent)
   }
 }
 

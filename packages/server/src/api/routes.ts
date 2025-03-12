@@ -1,4 +1,4 @@
-import type { CodeStats, CommitInfo, Heartbeat } from '@devlog/shared'
+import type { CodeStats, CommitInfo, Heartbeat, WindowStateEvent } from '@devlog/shared'
 import type { Request, Response } from 'express'
 import { Router } from 'express'
 import { logger } from '../config/logger'
@@ -16,6 +16,10 @@ interface CommitRequest extends Request {
 
 interface CodeStatsRequest extends Request {
   body: CodeStats
+}
+
+interface WindowStateRequest extends Request {
+  body: WindowStateEvent
 }
 
 // Endpoint pro přijetí heartbeatu
@@ -92,6 +96,30 @@ router.post('/commit', async (req: CommitRequest, res: Response) => {
   }
   catch (error) {
     logger.error({ err: error, commitInfo }, 'Chyba při zpracování commitu')
+    return res.status(500).json({ error: 'Interní chyba serveru' })
+  }
+})
+
+// Endpoint pro přijetí změny stavu okna
+router.post('/window-state', (req: WindowStateRequest, res: Response) => {
+  const windowStateEvent = req.body
+
+  // Základní validace
+  if (!windowStateEvent.timestamp || !windowStateEvent.windowState) {
+    logger.warn({ windowStateEvent }, 'Přijata neplatná změna stavu okna')
+    return res.status(400).json({ error: 'Neplatná změna stavu okna' })
+  }
+
+  // Zpracování změny stavu okna přes službu
+  try {
+    timeTrackingService.processWindowState(windowStateEvent)
+
+    return res.status(200).json({
+      received: true,
+    })
+  }
+  catch (error) {
+    logger.error({ err: error, windowStateEvent }, 'Chyba při zpracování změny stavu okna')
     return res.status(500).json({ error: 'Interní chyba serveru' })
   }
 })
