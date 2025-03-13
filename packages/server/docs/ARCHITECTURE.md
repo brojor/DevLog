@@ -39,6 +39,12 @@ Serverová část projektu DevLog slouží jako centrální komponenta pro zprac
 │   ├── types/           # TypeScript definice
 │   │   ├── index.ts     # Serverové typy
 │   │   └── notion.ts    # Typy pro Notion
+│   ├── validators/      # Validační schémata
+│   │   ├── heartbeat.ts            # Validátor pro heartbeaty
+│   │   ├── codeStats.ts            # Validátor pro statistiky kódu
+│   │   ├── commitInfo.ts           # Validátor pro informace o commitu
+│   │   ├── windowState.ts          # Validátor pro změny stavu okna
+│   │   └── index.ts                # Export validátorů
 │   └── index.ts         # Vstupní bod aplikace
 ├── README.md            # Dokumentace projektu
 ├── ecosystem.config.cjs # PM2 konfigurace
@@ -132,6 +138,26 @@ Serverová část DevLog využívá modulární architekturu s jasně oddělený
    - Automatická detekce neaktivity uživatele
    - Poskytování přesných statistik o času stráveném v IDE
 
+### Validátory
+
+Pro zajištění integrity dat byly implementovány validátory pomocí knihovny VineJS:
+
+1. **HeartbeatValidator** - Validace heartbeatů z klientských rozšíření
+   - Ověření přítomnosti a formátu timestamp
+   - Ověření platného zdroje (vscode nebo chrome)
+
+2. **CodeStatsValidator** - Validace statistik o změnách v kódu
+   - Ověření platných hodnot pro filesChanged, linesAdded a linesRemoved
+   - Timestamp je volitelný, ale musí být platný
+
+3. **CommitInfoValidator** - Validace informací o Git commitu
+   - Ověření zprávy commitu, timestamp a hash
+   - Validace informací o repozitáři (name a owner)
+
+4. **WindowStateValidator** - Validace změn stavu okna
+   - Ověření timestamp
+   - Validace stavu okna (focused a active)
+
 ## Sledování času v IDE
 
 `IdeTimeTracker` poskytuje přesné a spolehlivé sledování času stráveného v IDE. Řeší následující scénáře:
@@ -146,7 +172,7 @@ Tracker zpracovává informace o stavu okna (focus, aktivita) z VS Code rozší�
 
 ## API Endpointy
 
-Server poskytuje následující API endpointy:
+Server poskytuje následující API endpointy s důkladnou validací vstupních dat:
 
 ### POST /api/heartbeat
 
@@ -156,14 +182,14 @@ Přijímá heartbeaty z klientských rozšíření, které signalizují aktivitu
 - Objekt typu `Heartbeat`
 
 **Zpracování:**
-1. Validace vstupních dat
+1. Validace vstupních dat pomocí validátoru
 2. Pokud není aktivní žádná session, vytvoří novou
 3. Pokud existuje aktivní session, aktualizuje čas poslední aktivity
 4. Přidává čas do příslušného čítače (IDE nebo Browser) podle zdroje heartbeatu
 
 **Odpověď:**
 - 200 OK - Heartbeat byl zpracován, vrací ID aktivní session
-- 400 Bad Request - Chybějící nebo neplatná data
+- 400 Bad Request - Chybějící nebo neplatná data (validační chyba)
 - 500 Internal Server Error - Chyba při zpracování
 
 ### POST /api/stats
@@ -174,13 +200,13 @@ Přijímá statistiky o změnách v kódu z VS Code rozšíření.
 - Objekt typu `CodeStats`
 
 **Zpracování:**
-1. Validace vstupních dat
+1. Validace vstupních dat pomocí validátoru
 2. Aktualizace statistik v aktivní session
 3. Statistiky jsou ukládány lokálně a do Notion jsou odeslány až při ukončení session
 
 **Odpověď:**
 - 200 OK - Statistiky byly zpracovány
-- 400 Bad Request - Chybějící nebo neplatná data
+- 400 Bad Request - Chybějící nebo neplatná data (validační chyba)
 - 500 Internal Server Error - Chyba při zpracování
 
 ### POST /api/commit
@@ -191,7 +217,7 @@ Přijímá informace o Git commitech, které vedou k ukončení aktuální sessi
 - Objekt typu `CommitInfo`
 
 **Zpracování:**
-1. Validace vstupních dat
+1. Validace vstupních dat pomocí validátoru
 2. Ukončení aktuální session, pokud existuje
 3. Vyhledání nebo vytvoření projektu podle informací o repozitáři
 4. Vytvoření nového tasku s informacemi z commitu
@@ -199,7 +225,24 @@ Přijímá informace o Git commitech, které vedou k ukončení aktuální sessi
 
 **Odpověď:**
 - 200 OK - Commit byl zpracován, vrací ID vytvořeného tasku
-- 400 Bad Request - Chybějící nebo neplatná data
+- 400 Bad Request - Chybějící nebo neplatná data (validační chyba)
+- 500 Internal Server Error - Chyba při zpracování
+
+### POST /api/ide/window-state
+
+Přijímá informace o změnách stavu okna VS Code.
+
+**Vstup:**
+- Objekt typu `WindowStateEvent`
+
+**Zpracování:**
+1. Validace vstupních dat pomocí validátoru
+2. Předání stavu okna do IdeTimeTracker
+3. Úprava měření času v závislosti na stavu okna
+
+**Odpověď:**
+- 200 OK - Změna stavu byla zpracována
+- 400 Bad Request - Chybějící nebo neplatná data (validační chyba)
 - 500 Internal Server Error - Chyba při zpracování
 
 ## Modelování dat v Notion

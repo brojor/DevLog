@@ -14,6 +14,7 @@ Serverová část DevLog slouží jako centrální komponenta systému, která z
 - **Sledování času** stráveného v různých prostředích (IDE vs prohlížeč)
 - **Statistiky změn v kódu** včetně počtu změněných souborů a řádků
 - **Strukturované logování** včetně logování do souborů v produkci
+- **Robustní validace dat** pomocí VineJS schémat
 
 ## 🔧 Požadavky
 
@@ -115,11 +116,18 @@ pm2 logs devlog
 
 ## 🌐 API Endpointy
 
-Server poskytuje následující API endpointy:
+Server poskytuje následující API endpointy s robustní validací vstupních dat:
 
 - **POST /api/heartbeat** - Přijímá heartbeaty z klientských rozšíření
 - **POST /api/stats** - Přijímá statistiky o změnách v kódu
 - **POST /api/commit** - Přijímá informace o Git commitech
+- **POST /api/ide/window-state** - Přijímá informace o změnách stavu okna IDE
+
+Všechny endpointy používají validaci pomocí knihovny VineJS, která:
+- Kontroluje přítomnost povinných polí
+- Validuje typy dat a jejich rozsahy
+- Poskytuje přesné chybové zprávy při neplatném vstupu
+- Automaticky extrahuje a typuje data pro použití v kódu
 
 ## ⚙️ Konfigurace
 
@@ -138,6 +146,29 @@ Konfigurace PM2 pro produkční nasazení je v souboru `ecosystem.config.cjs`. T
 - Cestu ke skriptu
 - Nastavení prostředí
 - Konfiguraci logování a jejich rotaci
+
+## 🧠 Validace dat
+
+Aplikace používá knihovnu VineJS pro validaci vstupních dat. Pro každý typ dat je definováno validační schéma:
+
+```typescript
+import { HeartbeatSource } from '@devlog/shared'
+// Příklad pro heartbeat validátor
+import vine from '@vinejs/vine'
+
+const heartbeatSchema = vine.object({
+  timestamp: vine.number().positive(),
+  source: vine.enum(HeartbeatSource),
+})
+
+export const heartbeatValidator = vine.compile(heartbeatSchema)
+```
+
+Výhody tohoto přístupu:
+- Oddělení validace od routovací logiky
+- Typová bezpečnost díky TypeScriptu
+- Přesné a informativní chybové zprávy
+- Možnost snadného rozšíření validačních pravidel
 
 ## 🔗 Další komponenty
 
