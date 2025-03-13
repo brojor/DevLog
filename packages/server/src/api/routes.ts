@@ -1,126 +1,100 @@
-import type { CodeStats, CommitInfo, Heartbeat, WindowStateEvent } from '@devlog/shared'
 import type { Request, Response } from 'express'
+import { errors } from '@vinejs/vine'
 import { Router } from 'express'
 import { logger } from '../config/logger'
 import { timeTrackingService } from '../services/timeTrackingService'
+import { codeStatsValidator, commitInfoValidator, heartbeatValidator, windowStateEventValidator } from '../validators'
 
 const router = Router()
 
-interface HeartbeatRequest extends Request {
-  body: Heartbeat
-}
-
-interface CommitRequest extends Request {
-  body: CommitInfo
-}
-
-interface CodeStatsRequest extends Request {
-  body: CodeStats
-}
-
-interface WindowStateRequest extends Request {
-  body: WindowStateEvent
-}
-
-// Endpoint pro přijetí heartbeatu
-router.post('/heartbeat', async (req: HeartbeatRequest, res: Response) => {
-  const heartbeat = req.body
-
-  // Základní validace
-  if (!heartbeat.timestamp || !heartbeat.source) {
-    logger.warn({ heartbeat }, 'Přijat neplatný heartbeat')
-    return res.status(400).json({ error: 'Neplatný heartbeat' })
-  }
-
-  // Zpracování heartbeatu přes službu
+/**
+ * @route POST /heartbeat
+ * @description Endpoint for receiving heartbeat data from client
+ * @returns {object} JSON response with confirmation and session ID
+ */
+router.post('/heartbeat', async (req: Request, res: Response) => {
   try {
+    const heartbeat = await heartbeatValidator.validate(req.body)
+
     const sessionId = await timeTrackingService.processHeartbeat(heartbeat)
 
-    return res.status(200).json({
-      received: true,
-      sessionId,
-    })
+    return res.status(200).json({ received: true, sessionId })
   }
   catch (error) {
-    logger.error({ err: error, heartbeat }, 'Chyba při zpracování heartbeatu')
-    return res.status(500).json({ error: 'Interní chyba serveru' })
+    if (error instanceof errors.E_VALIDATION_ERROR) {
+      logger.warn({ err: error }, 'Invalid heartbeat')
+      return res.status(400).json({ error: 'Invalid heartbeat' })
+    }
+    logger.error({ err: error }, 'Error processing heartbeat')
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 
-// Endpoint pro přijetí statistik kódu
-router.post('/stats', async (req: CodeStatsRequest, res: Response) => {
-  const codeStats = req.body
-
-  // Základní validace
-  if (codeStats.filesChanged === undefined
-    || codeStats.linesAdded === undefined
-    || codeStats.linesRemoved === undefined
-  ) {
-    logger.warn({ codeStats }, 'Přijaty neplatné statistiky kódu')
-    return res.status(400).json({ error: 'Neplatné statistiky kódu' })
-  }
-
-  // Zpracování statistik přes službu
+/**
+ * @route POST /stats
+ * @description Endpoint for receiving code statistics from client
+ * @returns {object} JSON response confirming receipt
+ */
+router.post('/stats', async (req: Request, res: Response) => {
   try {
-    // Nová implementace updateCodeStats nevrací sessionId
+    const codeStats = await codeStatsValidator.validate(req.body)
+
     await timeTrackingService.processCodeStats(codeStats)
 
-    return res.status(200).json({
-      received: true,
-    })
+    return res.status(200).json({ received: true })
   }
   catch (error) {
-    logger.error({ err: error, codeStats }, 'Chyba při zpracování statistik kódu')
-    return res.status(500).json({ error: 'Interní chyba serveru' })
+    if (error instanceof errors.E_VALIDATION_ERROR) {
+      logger.warn({ err: error }, 'Invalid code statistics')
+      return res.status(400).json({ error: 'Invalid code statistics' })
+    }
+    logger.error({ err: error }, 'Error processing code statistics')
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 
-// Endpoint pro přijetí informací o commitu
-router.post('/commit', async (req: CommitRequest, res: Response) => {
-  const commitInfo = req.body
-
-  // Rozšířená validace pro novou strukturu CommitInfo
-  if (!commitInfo.message || !commitInfo.timestamp || !commitInfo.hash
-    || !commitInfo.repository || !commitInfo.repository.name || !commitInfo.repository.owner) {
-    logger.warn({ commitInfo }, 'Přijaty neplatné informace o commitu')
-    return res.status(400).json({ error: 'Neplatné informace o commitu' })
-  }
-
-  // Zpracování commitu přes službu
+/**
+ * @route POST /commit
+ * @description Endpoint for receiving git commit information
+ * @returns {object} JSON response with confirmation and task ID
+ */
+router.post('/commit', async (req: Request, res: Response) => {
   try {
+    const commitInfo = await commitInfoValidator.validate(req.body)
+
     const taskId = await timeTrackingService.processCommit(commitInfo)
-    return res.status(200).json({
-      received: true,
-      taskId,
-    })
+    return res.status(200).json({ received: true, taskId })
   }
   catch (error) {
-    logger.error({ err: error, commitInfo }, 'Chyba při zpracování commitu')
-    return res.status(500).json({ error: 'Interní chyba serveru' })
+    if (error instanceof errors.E_VALIDATION_ERROR) {
+      logger.warn({ err: error }, 'Invalid commit information')
+      return res.status(400).json({ error: 'Invalid commit information' })
+    }
+    logger.error({ err: error }, 'Error processing commit')
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 
-// Endpoint pro přijetí změny stavu okna
-router.post('/window-state', (req: WindowStateRequest, res: Response) => {
-  const windowStateEvent = req.body
-
-  // Základní validace
-  if (!windowStateEvent.timestamp || !windowStateEvent.windowState) {
-    logger.warn({ windowStateEvent }, 'Přijata neplatná změna stavu okna')
-    return res.status(400).json({ error: 'Neplatná změna stavu okna' })
-  }
-
-  // Zpracování změny stavu okna přes službu
+/**
+ * @route POST /ide/window-state
+ * @description Endpoint for receiving window state changes from client
+ * @returns {object} JSON response confirming receipt
+ */
+router.post('/ide/window-state', async (req: Request, res: Response) => {
   try {
+    const windowStateEvent = await windowStateEventValidator.validate(req.body)
+
     timeTrackingService.processWindowState(windowStateEvent)
 
-    return res.status(200).json({
-      received: true,
-    })
+    return res.status(200).json({ received: true })
   }
   catch (error) {
-    logger.error({ err: error, windowStateEvent }, 'Chyba při zpracování změny stavu okna')
-    return res.status(500).json({ error: 'Interní chyba serveru' })
+    if (error instanceof errors.E_VALIDATION_ERROR) {
+      logger.warn({ err: error }, 'Invalid window state event')
+      return res.status(400).json({ error: 'Invalid window state event' })
+    }
+    logger.error({ err: error }, 'Error processing window state event')
+    return res.status(500).json({ error: 'Internal server error' })
   }
 })
 
