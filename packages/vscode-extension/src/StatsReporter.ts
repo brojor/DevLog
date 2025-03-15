@@ -1,4 +1,3 @@
-import type { ActivityTracker } from './ActivityTracker'
 import type { ApiClient } from './ApiClient'
 import type { GitStashManager } from './GitStashManager'
 import * as vscode from 'vscode'
@@ -10,7 +9,6 @@ export class StatsReporter implements vscode.Disposable {
   private disposables: vscode.Disposable[] = []
 
   constructor(
-    private readonly activityTracker: ActivityTracker,
     private readonly gitStashManager: GitStashManager,
     private readonly apiClient: ApiClient,
   ) {
@@ -53,17 +51,6 @@ export class StatsReporter implements vscode.Disposable {
    */
   private async reportStats(): Promise<void> {
     try {
-      if (this.activityTracker.paused) {
-        console.log('StatsReporter: Sledování aktivity je pozastaveno, přeskakuji odeslání statistik')
-        return
-      }
-
-      // Kontrola aktivity uživatele
-      if (Date.now() - this.activityTracker.lastActivityTime > this.interval) {
-        console.log('StatsReporter: Uživatel není aktivní, přeskakuji odeslání statistik')
-        return
-      }
-
       // Kontrola, zda byl soubor uložen od posledního odeslání statistik
       if (!this.fileWasSaved) {
         console.log('StatsReporter: Od posledního odeslání nebyl uložen žádný soubor, přeskakuji odeslání statistik')

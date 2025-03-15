@@ -1,17 +1,15 @@
-import * as vscode from 'vscode'
-import { ActivityTracker } from './ActivityTracker'
+import type * as vscode from 'vscode'
 import { ApiClient } from './ApiClient'
 import { GitStashManager } from './GitStashManager'
 import { GitSupportManager } from './GitSupportManager'
-import { SessionManager } from './SessionManager'
+import { HeartbeatManager } from './HeartbeatManager'
 import { StatsReporter } from './StatsReporter'
-import { StatusBarController } from './StatusBarItem'
+import { WindowStateManager } from './WindowStateManager'
 
-let activityTracker: ActivityTracker | undefined
-let statusBarController: StatusBarController | undefined
 let apiClient: ApiClient | undefined
 let gitStashManager: GitStashManager | undefined
-let sessionManager: SessionManager | undefined
+let windowStateManager: WindowStateManager | undefined
+let heartbeatManager: HeartbeatManager | undefined
 let statsReporter: StatsReporter | undefined
 let gitSupportManager: GitSupportManager | undefined
 
@@ -24,34 +22,23 @@ export function activate(context: vscode.ExtensionContext) {
   // Inicializace komponent
   apiClient = new ApiClient()
   gitStashManager = new GitStashManager()
-  sessionManager = new SessionManager(apiClient, gitStashManager)
 
-  // Inicializace a spuštění sledovače aktivity
-  activityTracker = new ActivityTracker(apiClient)
-  activityTracker.start()
+  // Inicializace sledování stavu okna a heartbeatů
+  windowStateManager = new WindowStateManager(apiClient)
+  heartbeatManager = new HeartbeatManager(apiClient)
 
-  // Vytvoření a inicializace status bar kontroleru
-  statusBarController = new StatusBarController(activityTracker)
-
-  // Registrace příkazu pro přepínání stavu sledování (pozastaveno/aktivní)
-  const togglePauseCommand = vscode.commands.registerCommand('toggl-auto-tracker.togglePause', () => {
-    if (activityTracker) {
-      const isPaused = activityTracker.togglePause()
-
-      // Aktualizujeme statusbar
-      if (statusBarController) {
-        statusBarController.updateStatusBar()
-      }
-
-      // Zobrazíme informační zprávu
-      vscode.window.showInformationMessage(
-        `Toggl Auto Tracker je nyní ${isPaused ? 'pozastaven' : 'aktivní'}.`,
-      )
-    }
+  // Propojení WindowStateManager a HeartbeatManager
+  windowStateManager.onStateChange((state) => {
+    // Povolit heartbeaty, pokud je okno aktivní a má focus
+    heartbeatManager?.setEnabled(state.active && state.focused)
   })
 
+  // Inicializovat HeartbeatManager s aktuálním stavem okna
+  const initialState = windowStateManager.state
+  heartbeatManager.setEnabled(initialState.active && initialState.focused)
+
   // Inicializace a spuštění reporteru statistik
-  statsReporter = new StatsReporter(activityTracker, gitStashManager, apiClient)
+  statsReporter = new StatsReporter(gitStashManager, apiClient)
   statsReporter.start()
 
   // Inicializace podpory pro Git commity
@@ -62,10 +49,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Přidáme komponenty do subscriptions
   context.subscriptions.push(
-    togglePauseCommand,
-    activityTracker,
-    statusBarController,
-    sessionManager,
+    windowStateManager,
+    heartbeatManager,
     statsReporter,
     gitSupportManager,
   )
@@ -80,19 +65,14 @@ export function deactivate() {
     gitSupportManager = undefined
   }
 
-  if (statusBarController) {
-    statusBarController.dispose()
-    statusBarController = undefined
+  if (windowStateManager) {
+    windowStateManager.dispose()
+    windowStateManager = undefined
   }
 
-  if (activityTracker) {
-    activityTracker.dispose()
-    activityTracker = undefined
-  }
-
-  if (sessionManager) {
-    sessionManager.dispose()
-    sessionManager = undefined
+  if (heartbeatManager) {
+    heartbeatManager.dispose()
+    heartbeatManager = undefined
   }
 
   if (statsReporter) {

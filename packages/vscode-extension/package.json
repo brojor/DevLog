@@ -20,12 +20,6 @@
     "onStartupFinished"
   ],
   "contributes": {
-    "commands": [
-      {
-        "command": "devlog.togglePause",
-        "title": "DevLog: Toggle Pause"
-      }
-    ],
     "configuration": {
       "title": "DevLog",
       "properties": {

@@ -2,7 +2,7 @@
 
 ## Přehled
 
-VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření detekuje různé typy aktivit, identifikuje aktuální projekt, poskytuje možnost dočasně pozastavit sledování a sbírá statistiky o změnách v kódu. Nově také sleduje Git commity a automaticky aktualizuje statistiky při každém commitu.
+VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje aktivitu uživatele v editoru a odesílá data na centrální server. Rozšíření pravidelně odesílá heartbeaty, monitoruje stav okna VS Code, sbírá statistiky o změnách v kódu a sleduje Git commity. Nový přístup rozšíření používá časovač pro pravidelné odesílání heartbeatů namísto sledování konkrétních aktivit uživatele, což zvyšuje spolehlivost a snižuje režii systému.
 
 ## Adresářová struktura
 
@@ -10,15 +10,15 @@ VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje 
 packages/vscode-extension/
 ├── src/
 │   ├── extension.ts         # Hlavní vstupní bod rozšíření
-│   ├── ActivityTracker.ts   # Třída pro sledování aktivity uživatele
 │   ├── ApiClient.ts         # Třída pro komunikaci se serverem
+│   ├── HeartbeatManager.ts  # Třída pro správu pravidelných heartbeatů
+│   ├── WindowStateManager.ts # Třída pro sledování stavu okna VS Code
 │   ├── GitStashManager.ts   # Třída pro správu Git stash hashů a statistik kódu
 │   ├── GitHookManager.ts    # Třída pro instalaci Git hooků
 │   ├── CommitWatcher.ts     # Třída pro sledování Git commitů
 │   ├── GitSupportManager.ts # Třída pro koordinaci Git podpory
 │   ├── StatsReporter.ts     # Třída pro pravidelné odesílání statistik
-│   ├── SessionManager.ts    # Třída pro správu sessions
-│   └── StatusBarItem.ts     # Třída pro ovládání položky ve status baru
+│   └── SessionManager.ts    # Třída pro správu sessions
 ├── .vscodeignore            # Soubory ignorované při publikování
 ├── package.json             # Metadata a konfigurace rozšíření
 ├── tsconfig.json            # Konfigurace TypeScript
@@ -27,39 +27,56 @@ packages/vscode-extension/
 
 ## Klíčové komponenty
 
-### 1. ActivityTracker
+### 1. HeartbeatManager
 
-Třída `ActivityTracker` je zodpovědná za sledování aktivity uživatele v editoru.
-
-**Sledované aktivity:**
-- Úpravy textu (psaní, mazání)
-- Přepínání mezi soubory
-- Změny výběru textu
-- Přepínání záložek/editorů
-- Scrollování
+Třída `HeartbeatManager` je zodpovědná za pravidelné odesílání heartbeatů na server.
 
 **Klíčové funkce:**
-- Implementuje throttling (5 sekund), aby se aktivity neodesílaly příliš často
-- Poskytuje možnost dočasně pozastavit sledování
-- Spravuje informace o aktuálním projektu
+- Vytváří a spravuje interval pro pravidelné odesílání heartbeatů
+- Aktivuje/deaktivuje odesílání heartbeatů na základě stavu okna VS Code
+- Používá konstantu `IDE_HEARTBEAT_INTERVAL_MS` ze sdílených konstant pro nastavení intervalu
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
-- Poskytuje přístup k času poslední aktivity pomocí getter metody `lastActivityTime`
 
-### 2. ApiClient
+**Hlavní metody:**
+- `setEnabled(enabled)`: Povoluje nebo zakazuje odesílání heartbeatů
+- `sendHeartbeat()`: Odešle aktuální heartbeat na server
+- `dispose()`: Uvolní zdroje (vyčistí interval)
+
+### 2. WindowStateManager
+
+Třída `WindowStateManager` je zodpovědná za sledování stavu okna VS Code (aktivní/neaktivní, fokus).
+
+**Klíčové funkce:**
+- Sleduje události změny stavu okna VS Code
+- Odesílá informace o změnách stavu okna na server
+- Informuje ostatní komponenty o změnách stavu pomocí callback funkce
+- Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
+
+**Hlavní metody:**
+- `onStateChange(callback)`: Nastavuje callback, který bude volán při každé změně stavu okna
+- `handleWindowStateChange(e)`: Zpracovává změnu stavu okna
+- `sendWindowState()`: Odesílá aktuální stav okna na server
+- `state` (getter): Poskytuje aktuální stav okna
+
+### 3. ApiClient
 
 Třída `ApiClient` zajišťuje komunikaci s centrálním serverem.
 
 **Hlavní metody:**
 - `sendHeartbeat(data)`: Odesílá heartbeat data na server
 - `sendStats(data)`: Odesílá statistiky o změnách v kódu na server
-- `sendCommitInfo(message, timestamp, stats)`: Odesílá informace o commitu a statistiky kódu na server
+- `sendCommitInfo(commitInfo)`: Odesílá informace o commitu na server
+- `sendWindowState(windowStateEvent)`: Odesílá informace o stavu okna na server
 
 **Implementační detaily:**
 - Získává URL serveru z konfigurace rozšíření
 - Odesílá data pomocí HTTP POST požadavku
+- Správa identifikátoru session (sessionId)
 - Ošetřuje chyby při komunikaci se serverem
+- Vrací Promise pro asynchronní operace
+- Používá typované rozhraní pro odesílaná data
 
-### 3. GitStashManager
+### 4. GitStashManager
 
 Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získávání statistik o změnách v kódu.
 
@@ -75,7 +92,7 @@ Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získáv
 - Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
 - Při absenci změn používá HEAD jako referenční bod
 
-### 4. GitHookManager
+### 5. GitHookManager
 
 Třída `GitHookManager` je zodpovědná za instalaci a správu Git post-commit hooků v repozitáři.
 
@@ -87,7 +104,7 @@ Třída `GitHookManager` je zodpovědná za instalaci a správu Git post-commit 
 - Zachovává existující funkcionalitu hooků, pokud už existují
 - Používá jméno souboru (timestamp commitu) pro identifikaci commit zpráv
 
-### 5. CommitWatcher
+### 6. CommitWatcher
 
 Třída `CommitWatcher` sleduje změny v adresáři `.git/last-commit-info` a detekuje nové commity.
 
@@ -101,7 +118,7 @@ Třída `CommitWatcher` sleduje změny v adresáři `.git/last-commit-info` a de
 - `initialize()`: Připraví adresář a spustí sledování
 - `start()`: Spustí sledování adresáře
 
-### 6. GitSupportManager
+### 7. GitSupportManager
 
 Třída `GitSupportManager` koordinuje Git funkcionalitu, propojuje `GitHookManager`, `CommitWatcher` a `ApiClient`.
 
@@ -110,7 +127,7 @@ Třída `GitSupportManager` koordinuje Git funkcionalitu, propojuje `GitHookMana
 - Reaguje na nové commity a získává aktuální statistiky kódu
 - Odesílá commit informace a statistiky na server
 
-### 7. StatsReporter
+### 8. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
 
@@ -118,7 +135,6 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 - Implementuje periodické odesílání statistik pomocí `setInterval`
 - Sleduje události uložení souborů (`onDidSaveTextDocument`)
 - Odesílá statistiky pouze když došlo k uložení souboru od posledního odeslání
-- Kontroluje aktivitu uživatele před odesláním statistik
 - Využívá `GitStashManager` pro získání aktuálních statistik
 - Využívá `ApiClient` pro odeslání statistik na server
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
@@ -126,14 +142,14 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 **Hlavní metody:**
 - `start()`: Spustí pravidelné odesílání statistik
 - `stop()`: Zastaví pravidelné odesílání statistik
-- `reportStats()`: Získá a odešle statistiky, pokud je uživatel aktivní a došlo k uložení souboru
+- `reportStats()`: Získá a odešle statistiky, pokud došlo k uložení souboru
 
 **Optimalizace:**
 - Provádí náročnou operaci git diff pouze když je skutečně potřeba (po uložení souboru)
 - Sleduje příznak `fileWasSaved`, který indikuje, zda došlo k uložení souboru od posledního odeslání statistik
 - Šetří systémové zdroje vynecháním zbytečných git diff operací, když se kód nezměnil
 
-### 8. SessionManager
+### 9. SessionManager
 
 Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při prvním spuštění nebo po dlouhé neaktivitě.
 
@@ -141,59 +157,37 @@ Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváře
 - Správa stavů relace (aktivní, neaktivní)
 - Koordinace vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
-
-### 9. StatusBarController
-
-Třída `StatusBarController` zobrazuje aktuální stav sledování ve status baru VS Code.
-
-**Funkce:**
-- Zobrazuje ikonu a text indikující stav sledování (aktivní/pozastaveno)
-- Umožňuje přepínat stav sledování kliknutím na položku
-- Dynamicky aktualizuje tooltip s popisem aktuálního stavu
+- Pracuje s novým typem sessionId (string místo number)
 
 ## Hlavní funkcionalita
 
-### Sledování aktivity
+### Heartbeat mechanismus
 
-Rozšíření sleduje aktivitu uživatele registrováním posluchačů na různé VS Code události. Při detekci aktivity:
-1. Aktualizuje čas poslední aktivity
-2. Pokud uplynul dostatečný čas od posledního odeslání, odešle heartbeat na server
-3. Loguje aktivitu do konzole pro snazší debugging
+Rozšíření používá pravidelné heartbeaty namísto sledování konkrétních aktivit:
+1. `HeartbeatManager` nastavuje interval pomocí `TIME_CONSTANTS.IDE_HEARTBEAT_INTERVAL_MS` (10 sekund)
+2. Heartbeaty jsou odesílány pouze když je okno VS Code aktivní a má fokus
+3. Heartbeaty obsahují základní informace (timestamp, zdroj)
+4. Server používá heartbeaty pro detekci aktivních sessions
 
-### Získávání informací o projektu
+### Sledování stavu okna
 
-Informace o projektu jsou aktualizovány:
-1. Při prvním spuštění rozšíření
-2. Při změnách workspace folderů
-
-### Pozastavení sledování
-
-Uživatel může dočasně pozastavit sledování:
-1. Kliknutím na položku ve status baru
-2. Použitím příkazu "DevLog: Toggle Pause" z příkazové palety
-
-Při pozastavení:
-1. Změní se ikona a text v status baru
-2. Heartbeaty nejsou odesílány na server, i když je detekována aktivita
-3. Stav pozastavení je zachován až do explicitní změny
+Rozšíření monitoruje stav okna VS Code, což umožňuje:
+1. Odesílat heartbeaty pouze když je okno aktivní
+2. Informovat server o změnách stavu okna (aktivní/neaktivní, fokus)
+3. Detekovat přepínání mezi různými aplikacemi
+4. Optimalizovat využití síťových prostředků
 
 ### Sledování statistik o změnách v kódu
 
 Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním způsobem:
 1. Při inicializaci vytvoří referenční bod pomocí Git stash hashe
-2. Nastaví pravidelný interval (každých 60 sekund) pro potenciální odeslání statistik
+2. Nastaví pravidelný interval pro potenciální odeslání statistik
 3. Sleduje události uložení souborů a nastavuje příznak při každém uložení
 4. Statistiky skutečně získává a odesílá pouze když:
    - Uplynul nastavený interval
-   - Uživatel je aktivní
    - Od posledního odeslání byl uložen alespoň jeden soubor
 5. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
 6. Server používá tyto statistiky k obohacení popisků time logs v Notion
-
-Tato optimalizovaná implementace zajišťuje:
-- Minimální zatížení systému (git diff se provádí pouze když je potřeba)
-- Přesné statistiky odrážející skutečné změny v kódu
-- Spolehlivé poskytování dat serveru pro vytváření informativních popisků
 
 ### Sledování Git commitů
 
@@ -221,13 +215,19 @@ Rozšíření lze konfigurovat přes nastavení VS Code:
 
 Tato hodnota určuje URL centrálního serveru, na který jsou odesílány heartbeaty a statistiky.
 
-## Příkazy
+## Sdílené konstanty
 
-Rozšíření registruje následující příkazy:
+Pro konzistentnost napříč různými částmi aplikace jsou definovány sdílené konstanty:
 
-1. `devlog.togglePause` ("DevLog: Toggle Pause")
-   - Přepíná mezi aktivním a pozastaveným stavem sledování
-   - Aktualizuje UI pro indikaci nového stavu
+```typescript
+export const TIME_CONSTANTS = {
+  // Interval mezi heartbeaty v milisekundách (10 sekund)
+  IDE_HEARTBEAT_INTERVAL_MS: 10 * 1000,
+
+  // Timeout pro detekci neaktivity uživatele v milisekundách (2 minuty)
+  INACTIVITY_TIMEOUT_MS: 2 * 60 * 1000,
+}
+```
 
 ## Build a nasazení
 

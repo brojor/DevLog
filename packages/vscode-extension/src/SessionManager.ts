@@ -17,7 +17,7 @@ export class SessionManager implements vscode.Disposable {
     this.gitStashManager = gitStashManager
 
     // Použijeme arrow funkci místo bind(this)
-    this.disposable = this.apiClient.onSessionChange(async (newSessionId: number) => {
+    this.disposable = this.apiClient.onSessionChange(async (newSessionId: string) => {
       await this.handleSessionChange(newSessionId)
     })
   }
@@ -25,7 +25,7 @@ export class SessionManager implements vscode.Disposable {
   /**
    * Zpracovává změnu sessionId
    */
-  private async handleSessionChange(newSessionId: number): Promise<void> {
+  private async handleSessionChange(newSessionId: string): Promise<void> {
     console.log(`SessionManager: Změna sessionId na ${newSessionId}, vytvářím nový stash hash`)
 
     const stashHash = await this.gitStashManager.createStashHash()

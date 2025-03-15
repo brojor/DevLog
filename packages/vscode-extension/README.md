@@ -38,11 +38,6 @@ V nastavení VS Code můžete upravit:
 }
 ```
 
-## 🎮 Ovládání
-
-- **Status Bar**: Kliknutím pozastavíte/obnovíte sledování
-- Příkaz: `DevLog: Toggle Pause`
-
 ## 📊 Sledování statistik
 
 Rozšíření automaticky sleduje vaši aktivitu a sbírá tyto statistiky:

@@ -1,4 +1,4 @@
-import type { CodeStats, CommitInfo, Heartbeat } from '@devlog/shared'
+import type { CodeStats, CommitInfo, Heartbeat, HeartbeatResponse, WindowStateEvent } from '@devlog/shared'
 import * as vscode from 'vscode'
 
 /**
@@ -6,10 +6,10 @@ import * as vscode from 'vscode'
  */
 export class ApiClient {
   private readonly serverUrl: string
-  public sessionId: number | null = null
+  public sessionId: string | null = null
 
   // Event emitter for notifying sessionId changes
-  private readonly _onSessionChange = new vscode.EventEmitter<number>()
+  private readonly _onSessionChange = new vscode.EventEmitter<string>()
   public readonly onSessionChange = this._onSessionChange.event
 
   constructor() {
@@ -35,7 +35,7 @@ export class ApiClient {
   /**
    * Sends heartbeat data to the server
    */
-  public async sendHeartbeat(data: Heartbeat): Promise<number | null> {
+  public async sendHeartbeat(data: Heartbeat): Promise<string | null> {
     try {
       console.log('ApiClient: Sending heartbeat to server', data)
 
@@ -51,7 +51,17 @@ export class ApiClient {
         throw new Error(`Server responded with error: ${response.status} ${response.statusText}`)
       }
 
-      return await this.processResponse(response, 'Heartbeat')
+      // return await this.processResponse(response, 'Heartbeat')
+      const { sessionId } = await response.json() as HeartbeatResponse
+
+      // If sessionId has changed, update it and emit an event
+      if (sessionId !== this.sessionId) {
+        this.sessionId = sessionId
+        this._onSessionChange.fire(sessionId)
+      }
+
+      console.log(`ApiClient: Heartbeat successfully sent, sessionId: ${sessionId}`)
+      return sessionId
     }
     catch (error) {
       console.error('ApiClient: Error sending heartbeat:', error)
@@ -62,7 +72,7 @@ export class ApiClient {
   /**
    * Sends code statistics to the server
    */
-  public async sendStats(stats: CodeStats): Promise<number | null> {
+  public async sendStats(stats: CodeStats): Promise<void> {
     try {
       console.log('ApiClient: Sending statistics to server', stats)
 
@@ -78,18 +88,17 @@ export class ApiClient {
         throw new Error(`Server odpověděl s chybou: ${response.status} ${response.statusText}`)
       }
 
-      return await this.processResponse(response, 'Statistiky')
+      console.log('ApiClient: Statistics successfully sent')
     }
     catch (error) {
       console.error('ApiClient: Error sending statistics:', error)
-      return null
     }
   }
 
   /**
    * Sends commit information to the server in the new format
    */
-  public async sendCommitInfo(commitInfo: CommitInfo): Promise<number | null> {
+  public async sendCommitInfo(commitInfo: CommitInfo): Promise<void> {
     try {
       console.log('ApiClient: Sending commit info to server', commitInfo)
 
@@ -105,29 +114,35 @@ export class ApiClient {
         throw new Error(`Server odpověděl s chybou: ${response.status} ${response.statusText}`)
       }
 
-      return await this.processResponse(response, 'Commit info')
+      console.log('ApiClient: Commit info successfully sent')
     }
     catch (error) {
       console.error('ApiClient: Error sending commit info:', error)
-      return null
     }
   }
 
   /**
-   * Processes server response and extracts sessionId
-   * @private
+   * Sends window state changes to the server
    */
-  private async processResponse(response: Response, actionName: string): Promise<number> {
-    const responseData = await response.json() as { sessionId: number }
-    const newSessionId = responseData.sessionId
+  async sendWindowState(windowStateEvent: WindowStateEvent): Promise<void> {
+    try {
+      const response = await fetch(`${this.serverUrl}/api/ide/window-state`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(windowStateEvent),
+      })
 
-    // If sessionId has changed, update it and emit an event
-    if (newSessionId !== this.sessionId) {
-      this.sessionId = newSessionId
-      this._onSessionChange.fire(newSessionId)
+      if (!response.ok) {
+        throw new Error(`Chyba při odesílání stavu okna: ${response.status} ${response.statusText}`)
+      }
+
+      console.log('ApiClient: Window state successfully sent')
     }
-
-    console.log(`ApiClient: ${actionName} successfully sent, sessionId:`, newSessionId)
-    return newSessionId
+    catch (error) {
+      console.error('Chyba při komunikaci se serverem:', error)
+      throw error
+    }
   }
 }
