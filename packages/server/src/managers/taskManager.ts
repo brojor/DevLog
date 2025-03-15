@@ -1,8 +1,8 @@
+import type { SessionManager } from '#managers/sessionManager'
+import type NotionService from '#services/notionService'
+import type { TaskInput } from '#types/notion'
 import type { CommitInfo } from '@devlog/shared'
-import type NotionService from '../services/notionService'
-import type { TaskInput } from '../types/notion'
-import type { SessionManager } from './sessionManager'
-import { logger } from '../config/logger'
+import { logger } from '#config/logger'
 
 /**
  * Manages tasks in Notion. Responsible for creating new tasks based on
@@ -44,7 +44,7 @@ export class TaskManager {
 
       // Vytvoříme nový task
       const taskInput: TaskInput = {
-        name: subject,
+        name: subject || '',
         details: body || undefined, // přidáme details pouze pokud není prázdný
         projectId,
         status: 'Done',

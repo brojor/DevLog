@@ -1,5 +1,5 @@
-import pino from 'pino'
-import { appConfig } from './index'
+import { appConfig } from '#config/index'
+import { pino } from 'pino'
 
 // Základní konfigurace pro Pino logger
 const loggerConfig: pino.LoggerOptions = {

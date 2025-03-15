@@ -1,6 +1,6 @@
-import type { DateInput, TaskInput, TaskProperties } from '../types/notion'
-import { convertToISO8601 } from '../utilis/date'
-import PagePropertiesBuilder from './PagePropertiesBuilder'
+import type { DateInput, TaskInput, TaskProperties } from '#types/notion'
+import PagePropertiesBuilder from '#builders/PagePropertiesBuilder'
+import { convertToISO8601 } from '#utils/date'
 
 export default class TaskPropertiesBuilder extends PagePropertiesBuilder<TaskProperties> {
   // Factory metoda

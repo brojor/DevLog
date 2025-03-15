@@ -1,9 +1,9 @@
-import type { MinimalRequiredSessionInput, NotionConfig, ProjectInput, SessionInput, TaskInput } from '../types/notion'
+import type { MinimalRequiredSessionInput, NotionConfig, ProjectInput, SessionInput, TaskInput } from '#types/notion'
+import ProjectPropertiesBuilder from '#builders/ProjectPropertiesBuilder'
+import SessionPropertiesBuilder from '#builders/SessionPropertiesBuilder'
+import TaskPropertiesBuilder from '#builders/TaskPropertiesBuilder'
+import { appConfig } from '#config/index'
 import { Client, collectPaginatedAPI, isNotionClientError } from '@notionhq/client'
-import ProjectPropertiesBuilder from '../builders/ProjectPropertiesBuilder'
-import SessionPropertiesBuilder from '../builders/SessionPropertiesBuilder'
-import TaskPropertiesBuilder from '../builders/TaskPropertiesBuilder'
-import { appConfig } from '../config'
 
 export default class NotionService {
   private client: Client
@@ -78,8 +78,7 @@ export default class NotionService {
           },
         },
       })
-
-      if (response.results.length > 0) {
+      if (response.results.length > 0 && response.results[0]?.id) {
         return response.results[0].id
       }
 

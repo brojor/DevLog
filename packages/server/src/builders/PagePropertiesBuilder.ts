@@ -1,4 +1,4 @@
-import type { PageProperties } from '../types/notion'
+import type { PageProperties } from '../types/notion.js'
 
 export default abstract class PagePropertiesBuilder<TProperties extends PageProperties> {
   protected properties: Partial<TProperties> = {}

@@ -1,4 +1,4 @@
-import type { DateInput } from '../types/notion'
+import type { DateInput } from '#types/notion'
 
 /**
  * Converts a date in various formats to an ISO 8601 string

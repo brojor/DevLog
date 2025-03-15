@@ -12,7 +12,8 @@
     "dev": "tsc --watch",
     "build": "tsc",
     "lint": "NODE_NO_WARNINGS=1 eslint .",
-    "lint:fix": "NODE_NO_WARNINGS=1 eslint . --fix"
+    "lint:fix": "NODE_NO_WARNINGS=1 eslint . --fix",
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

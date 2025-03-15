@@ -1,5 +1,5 @@
-import type NotionService from '../services/notionService'
-import { logger } from '../config/logger'
+import type NotionService from '#services/notionService'
+import { logger } from '#config/logger'
 
 /**
  * Manages projects in Notion. Responsible for finding or creating
@@ -19,8 +19,8 @@ export class ProjectManager {
 
   /**
    * Finds or creates a project based on repository information
-   * @param repoName Repository name
    * @param repoOwner Repository owner
+   * @param repoName Repository name
    * @returns Project ID
    */
   async getOrCreateProjectFromRepo(repoOwner: string, repoName: string): Promise<string> {
@@ -75,8 +75,8 @@ export class ProjectManager {
 
   /**
    * Retrieves repository details from the GitHub API
-   * @param repoName The name of the repository
    * @param repoOwner The owner of the repository
+   * @param repoName The name of the repository
    * @returns Repository details from GitHub
    * @private
    */

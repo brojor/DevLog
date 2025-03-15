@@ -13,7 +13,8 @@
     "build": "pnpm -r build",
     "lint": "NODE_NO_WARNINGS=1 eslint .",
     "lint:fix": "NODE_NO_WARNINGS=1 eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "type-check": "pnpm -r run type-check"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.3.0",

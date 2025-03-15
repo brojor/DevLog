@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express'
+import { logger } from '#config/logger'
+import { timeTrackingService } from '#services/timeTrackingService'
+import { codeStatsValidator, commitInfoValidator, heartbeatValidator, windowStateEventValidator } from '#validators/index'
 import { errors } from '@vinejs/vine'
 import { Router } from 'express'
-import { logger } from '../config/logger'
-import { timeTrackingService } from '../services/timeTrackingService'
-import { codeStatsValidator, commitInfoValidator, heartbeatValidator, windowStateEventValidator } from '../validators'
 
 const router = Router()
 

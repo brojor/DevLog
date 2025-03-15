@@ -1,8 +1,8 @@
+import apiRoutes from '#api/routes'
+import { appConfig } from '#config/index'
+import { logger } from '#config/logger'
+import { httpLogger } from '#middlewares/logger'
 import express from 'express'
-import apiRoutes from './api/routes'
-import { appConfig } from './config'
-import { logger } from './config/logger'
-import { httpLogger } from './middlewares/logger'
 
 // Definice portu
 const PORT = appConfig.server.port

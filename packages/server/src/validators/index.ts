@@ -1,4 +1,4 @@
-export { codeStatsValidator } from './codeStats'
-export { commitInfoValidator } from './commitInfo'
-export { heartbeatValidator } from './heartbeat'
-export { windowStateEventValidator } from './windowState'
+export { codeStatsValidator } from '#validators/codeStats'
+export { commitInfoValidator } from '#validators/commitInfo'
+export { heartbeatValidator } from '#validators/heartbeat'
+export { windowStateEventValidator } from '#validators/windowState'

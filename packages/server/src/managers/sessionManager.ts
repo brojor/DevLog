@@ -1,11 +1,11 @@
+import type NotionService from '#services/notionService'
+import type { IdeTimeTracker } from '#trackers/ideTimeTracker'
+import type { ActiveSession, SessionConfig } from '#types/index'
+import type { SessionInput } from '#types/notion'
 import type { CodeStats, Heartbeat } from '@devlog/shared'
-import type NotionService from '../services/notionService'
-import type { IdeTimeTracker } from '../trackers/ideTimeTracker'
-import type { ActiveSession, SessionConfig } from '../types'
-import type { SessionInput } from '../types/notion'
+import { appConfig } from '#config/index'
+import { logger } from '#config/logger'
 import { HeartbeatSource } from '@devlog/shared'
-import { appConfig } from '../config'
-import { logger } from '../config/logger'
 
 /**
  * Manages the lifecycle of sessions, processes heartbeats and tracks activity.

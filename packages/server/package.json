@@ -3,13 +3,26 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "imports": {
+    "#api/*": "./src/api/*.js",
+    "#builders/*": "./src/builders/*.js",
+    "#config/*": "./src/config/*.js",
+    "#managers/*": "./src/managers/*.js",
+    "#middlewares/*": "./src/middlewares/*.js",
+    "#services/*": "./src/services/*.js",
+    "#trackers/*": "./src/trackers/*.js",
+    "#types/*": "./src/types/*.js",
+    "#utils/*": "./src/utils/*.js",
+    "#validators/*": "./src/validators/*.js"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup",
     "start": "node dist/index.js",
     "lint": "NODE_NO_WARNINGS=1 eslint .",
     "lint:fix": "NODE_NO_WARNINGS=1 eslint . --fix",
-    "deploy": "bash ./scripts/deploy.sh"
+    "deploy": "bash ./scripts/deploy.sh",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@devlog/shared": "workspace:^",

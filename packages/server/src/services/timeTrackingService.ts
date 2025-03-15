@@ -1,13 +1,13 @@
+import type NotionService from '#services/notionService'
 import type { CodeStats, CommitInfo, Heartbeat, WindowStateEvent } from '@devlog/shared'
-import type NotionService from '../services/notionService'
+import { appConfig } from '#config/index'
+import { logger } from '#config/logger'
+import { ProjectManager } from '#managers/projectManager'
+import { SessionManager } from '#managers/sessionManager'
+import { TaskManager } from '#managers/taskManager'
+import { notionService } from '#services/notionService'
+import { IdeTimeTracker } from '#trackers/ideTimeTracker'
 import { HeartbeatSource } from '@devlog/shared'
-import { appConfig } from '../config'
-import { logger } from '../config/logger'
-import { ProjectManager } from '../managers/projectManager'
-import { SessionManager } from '../managers/sessionManager'
-import { TaskManager } from '../managers/taskManager'
-import { notionService } from '../services/notionService'
-import { IdeTimeTracker } from '../trackers/ideTimeTracker'
 
 /**
  * Main service for time and activity tracking.
@@ -22,7 +22,6 @@ export class TimeTrackingService {
   /**
    * Creates a new TimeTrackingService instance
    * @param notionService NotionService instance for communication with Notion API
-   * @param sessionConfig Optional configuration
    */
   constructor(notionService: NotionService) {
     this.ideTimeTracker = new IdeTimeTracker(appConfig.session.inactivityTimeout * 1000)

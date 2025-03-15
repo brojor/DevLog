@@ -42,7 +42,8 @@
     "build": "vite build",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint --fix src --ext ts",
-    "package": "vite build && vsce package --no-dependencies --out dist"
+    "package": "vite build && vsce package --no-dependencies --out dist",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@devlog/shared": "workspace:^"
