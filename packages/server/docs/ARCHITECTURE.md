@@ -9,7 +9,7 @@ Serverová část projektu DevLog slouží jako centrální komponenta pro zprac
 ```
 .
 ├── dist/                # Buildnutá produkční verze
-│   └── index.cjs        # Zkompilovaný vstupní bod
+│   └── index.js         # Zkompilovaný vstupní bod
 ├── docs/                # Dokumentace
 │   └── ARCHITECTURE.md  # Detailní popis architektury
 ├── scripts/             # Utility skripty
@@ -50,7 +50,7 @@ Serverová část projektu DevLog slouží jako centrální komponenta pro zprac
 ├── ecosystem.config.cjs # PM2 konfigurace
 ├── package.json         # Dependence a skripty projektu
 ├── tsconfig.json        # TypeScript konfigurace
-└── vite.config.ts       # Konfigurace buildu
+└── tsup.config.ts       # Konfigurace tsup buildu
 ```
 
 ## Sdílené typy
@@ -408,7 +408,7 @@ Serverová aplikace je nasazena pomocí PM2 process manageru. Konfigurace je v s
 module.exports = {
   apps: [
     {
-      name: 'devlog-server',
+      name: 'devlog',
       script: 'dist/index.js',
       instances: 1,
       autorestart: true,
@@ -447,7 +447,7 @@ Pro automatizované nasazení serveru je k dispozici skript `scripts/deploy.sh`.
 
 Pro správný běh serveru jsou potřeba:
 
-- Node.js 20.10.0 nebo novější
+- Node.js 22.x nebo novější
 - PM2 instalovaný globálně: `npm install -g pm2`
 - pnpm instalovaný globálně: `npm install -g pnpm`
 
@@ -459,7 +459,7 @@ Pro správný běh serveru jsou potřeba:
 pnpm dev
 ```
 
-Spustí server s automatickým restartem při změnách v kódu.
+Spustí server s automatickým restartem při změnách v kódu pomocí tsx.
 
 ### Produkční build
 
@@ -468,7 +468,7 @@ pnpm build
 pnpm start
 ```
 
-Vytvoří optimalizovanou verzi aplikace a spustí ji.
+Vytvoří optimalizovanou verzi aplikace pomocí tsup a spustí ji.
 
 ### Zobrazení logů v produkci
 
@@ -477,7 +477,7 @@ Vytvoří optimalizovanou verzi aplikace a spustí ji.
 ssh n40l
 
 # Zobrazit logy z PM2
-pm2 logs devlog-server
+pm2 logs devlog
 
 # Nebo přímý přístup k log souborům
 less /home/brojor/production/devlog/logs/combined.log
