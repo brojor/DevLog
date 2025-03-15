@@ -57,7 +57,7 @@ export class TimeTrackingService {
    * @param commitInfo Commit information
    * @returns ID of created task
    */
-  async processCommit(commitInfo: CommitInfo): Promise<string> {
+  async processCommit(commitInfo: CommitInfo): Promise<void> {
     try {
       // 1. Ukončíme aktuální session, pokud existuje
       await this.sessionManager.endCurrentSession()
@@ -66,7 +66,7 @@ export class TimeTrackingService {
       const projectId = await this.projectManager.getOrCreateProjectFromRepo(commitInfo.repository.owner, commitInfo.repository.name)
 
       // 3. Předáme commitInfo taskManageru pro vytvoření tasku a propojení sessions
-      return this.taskManager.processCommit(commitInfo, projectId)
+      await this.taskManager.processCommit(commitInfo, projectId)
     }
     catch (error) {
       logger.error(

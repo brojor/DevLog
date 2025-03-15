@@ -1,3 +1,4 @@
+import type { HeartbeatResponse } from '@devlog/shared'
 import type { Request, Response } from 'express'
 import { logger } from '#config/logger'
 import { timeTrackingService } from '#services/timeTrackingService'
@@ -10,7 +11,7 @@ const router = Router()
 /**
  * @route POST /heartbeat
  * @description Endpoint for receiving heartbeat data from client
- * @returns {object} JSON response with confirmation and session ID
+ * @returns {object} JSON response with session ID
  */
 router.post('/heartbeat', async (req: Request, res: Response) => {
   try {
@@ -18,7 +19,7 @@ router.post('/heartbeat', async (req: Request, res: Response) => {
 
     const sessionId = await timeTrackingService.processHeartbeat(heartbeat)
 
-    return res.status(200).json({ received: true, sessionId })
+    return res.status(200).json({ sessionId } as HeartbeatResponse)
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
@@ -33,7 +34,7 @@ router.post('/heartbeat', async (req: Request, res: Response) => {
 /**
  * @route POST /stats
  * @description Endpoint for receiving code statistics from client
- * @returns {object} JSON response confirming receipt
+ * @returns {200} Status code 200 on success
  */
 router.post('/stats', async (req: Request, res: Response) => {
   try {
@@ -41,7 +42,7 @@ router.post('/stats', async (req: Request, res: Response) => {
 
     await timeTrackingService.processCodeStats(codeStats)
 
-    return res.status(200).json({ received: true })
+    return res.status(200)
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
@@ -56,14 +57,15 @@ router.post('/stats', async (req: Request, res: Response) => {
 /**
  * @route POST /commit
  * @description Endpoint for receiving git commit information
- * @returns {object} JSON response with confirmation and task ID
+ * @returns {201} Status code 201 on successful creation
  */
 router.post('/commit', async (req: Request, res: Response) => {
   try {
     const commitInfo = await commitInfoValidator.validate(req.body)
 
-    const taskId = await timeTrackingService.processCommit(commitInfo)
-    return res.status(200).json({ received: true, taskId })
+    await timeTrackingService.processCommit(commitInfo)
+
+    return res.status(201)
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
@@ -78,7 +80,7 @@ router.post('/commit', async (req: Request, res: Response) => {
 /**
  * @route POST /ide/window-state
  * @description Endpoint for receiving window state changes from client
- * @returns {object} JSON response confirming receipt
+ * @returns {200} Status code 200 on success
  */
 router.post('/ide/window-state', async (req: Request, res: Response) => {
   try {
@@ -86,7 +88,7 @@ router.post('/ide/window-state', async (req: Request, res: Response) => {
 
     timeTrackingService.processWindowState(windowStateEvent)
 
-    return res.status(200).json({ received: true })
+    return res.status(200)
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {

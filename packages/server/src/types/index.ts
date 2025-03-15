@@ -2,7 +2,7 @@ import type { CodeStats } from '@devlog/shared'
 
 export interface ActiveSession {
   id: string | null
-  startDate: string
+  startDate: number | null
   lastActivity: number
   browserTime: number
   codeStats: CodeStats

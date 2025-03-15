@@ -34,3 +34,7 @@ export interface WindowStateEvent {
   windowState: WindowState
   timestamp: number
 }
+
+export interface HeartbeatResponse {
+  sessionId: string
+}

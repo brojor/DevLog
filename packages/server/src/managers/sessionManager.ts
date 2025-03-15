@@ -139,7 +139,7 @@ export class SessionManager {
   async endCurrentSession(): Promise<void> {
     try {
       // Pokud není aktivní žádná session, nemáme co ukončovat
-      if (!this.activeSession.id) {
+      if (!this.activeSession.id || !this.activeSession.startDate) {
         return
       }
 
@@ -235,6 +235,7 @@ export class SessionManager {
       if (this.sessionCounter === 0) {
         await this.initializeSessionCounter()
       }
+      this.activeSession.startDate = Date.now()
 
       const sessionName = this.generateSessionName()
       // Připravíme vstupní data pro novou session
@@ -278,7 +279,7 @@ export class SessionManager {
   private resetActiveSession(): void {
     this.activeSession = {
       id: null,
-      startDate: new Date().toISOString(),
+      startDate: null,
       lastActivity: 0,
       browserTime: 0,
       codeStats: {
