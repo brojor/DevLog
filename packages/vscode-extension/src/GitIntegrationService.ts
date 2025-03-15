@@ -9,94 +9,64 @@ import { GitRepositoryProvider } from './GitRepositoryProvider'
  * Service that integrates Git functionality with the DevLog backend
  */
 export class GitIntegrationService implements Disposable {
-  private repositoryProvider: GitRepositoryProvider
-  private commitEventService: CommitEventService
-  private commitInfoService: CommitInfoService
-  private disposables: Disposable[] = []
+  private readonly repositoryProvider: GitRepositoryProvider
+  private readonly commitEventService: CommitEventService
+  private readonly commitInfoService: CommitInfoService
 
   constructor(
     private readonly apiClient: ApiClient,
+    rootPath?: string,
   ) {
-    this.repositoryProvider = new GitRepositoryProvider()
-    this.commitEventService = new CommitEventService()
-    this.commitInfoService = new CommitInfoService()
-  }
+    const workspacePath = rootPath || this.getWorkspaceRootPath()
+    if (!workspacePath) {
+      throw new Error('No workspace path available')
+    }
 
-  /**
-   * Initialize the Git integration
-   */
-  public async initialize(): Promise<boolean> {
     try {
-      // Initialize repository provider
-      if (!this.repositoryProvider.initialize()) {
-        console.log('GitIntegrationService: Failed to initialize repository provider')
-        return false
-      }
-
-      // Get workspace root path
-      const workspaceFolders = vscode.workspace.workspaceFolders
-      if (!workspaceFolders || workspaceFolders.length === 0) {
-        console.log('GitIntegrationService: No workspace folders available')
-        return false
-      }
-      const rootPath = workspaceFolders[0].uri.fsPath
-
-      // Initialize commit event service
-      if (!await this.commitEventService.initialize(rootPath)) {
-        console.log('GitIntegrationService: Failed to initialize commit event service')
-        return false
-      }
-
-      // Register commit handler
-      const disposable = this.commitEventService.onCommit(this.handleCommit.bind(this))
-      this.disposables.push(disposable)
-
-      console.log('GitIntegrationService: Successfully initialized')
-      return true
+      this.repositoryProvider = new GitRepositoryProvider()
+      this.commitInfoService = new CommitInfoService()
+      this.commitEventService = new CommitEventService(workspacePath)
     }
     catch (error) {
-      console.error('GitIntegrationService: Failed to initialize', error)
-      return false
+      throw new Error(`Failed to initialize Git services: ${error}`)
     }
   }
 
   /**
-   * Handle commit event
+   * Initialize Git integration and start listening for commits
    */
+  public async initialize(): Promise<void> {
+    try {
+      await this.commitEventService.initialize()
+      this.commitEventService.setCommitCallback(() => this.handleCommit())
+    }
+    catch (error) {
+      throw new Error(`Failed to initialize Git integration: ${error}`)
+    }
+  }
+
+  private getWorkspaceRootPath(): string | undefined {
+    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+  }
+
   private async handleCommit(): Promise<void> {
+    const repository = this.repositoryProvider.getActiveRepository()
+    if (!repository)
+      return
+
+    const commitInfo = await this.commitInfoService.getCommitInfo(repository)
+    if (!commitInfo)
+      return
+
     try {
-      // Get active repository
-      const repository = this.repositoryProvider.getActiveRepository()
-      if (!repository) {
-        console.log('GitIntegrationService: No active repository found')
-        return
-      }
-
-      // Get commit information
-      const commitInfo = await this.commitInfoService.getHeadCommitInfo(repository)
-      if (!commitInfo) {
-        console.log('GitIntegrationService: Failed to get commit information')
-        return
-      }
-
-      // Send to server
       await this.apiClient.sendCommitInfo(commitInfo)
-      console.log('GitIntegrationService: Commit info sent to server')
     }
     catch (error) {
-      console.error('GitIntegrationService: Error handling commit', error)
+      throw new Error(`Failed to send commit info: ${error}`)
     }
   }
 
-  /**
-   * Dispose of resources
-   */
   public dispose(): void {
     this.commitEventService.dispose()
-
-    for (const disposable of this.disposables) {
-      disposable.dispose()
-    }
-    this.disposables = []
   }
 }

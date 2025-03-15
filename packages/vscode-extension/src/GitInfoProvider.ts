@@ -1,3 +1,4 @@
+import type { RepoDetails } from './types'
 import type { API, GitExtension, Repository } from './types/git'
 import * as vscode from 'vscode'
 
@@ -81,7 +82,7 @@ export class GitInfoProvider {
    * @param remoteUrl Repository URL
    * @returns Object containing owner and name, or undefined
    */
-  public parseRepositoryInfo(remoteUrl: string): { owner: string, name: string } | undefined {
+  public parseRepositoryInfo(remoteUrl: string): RepoDetails | undefined {
     try {
       if (!remoteUrl) {
         return undefined

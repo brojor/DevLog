@@ -1,38 +1,30 @@
 import type { Disposable } from 'vscode'
+import type { CommitCallback } from './types'
 import { CommitEventListener } from './CommitEventListener'
 import { GitHookInstaller } from './GitHookInstaller'
-
-/**
- * Callback for commit events
- */
-export type CommitCallback = () => void | Promise<void>
-
 /**
  * Service that detects Git commit events
  */
 export class CommitEventService implements Disposable {
-  private gitHookInstaller: GitHookInstaller | undefined
-  private commitEventListener: CommitEventListener | undefined
-  private commitCallback: CommitCallback | undefined
+  private gitHookInstaller: GitHookInstaller
+  private commitEventListener: CommitEventListener
+  private commitCallback?: CommitCallback
+
+  constructor(rootPath: string) {
+    this.gitHookInstaller = new GitHookInstaller(rootPath)
+    this.commitEventListener = new CommitEventListener(
+      rootPath,
+      () => this.handleCommitEvent(),
+    )
+  }
 
   /**
    * Initialize the commit event service
-   * @param rootPath The repository root path
    */
-  public async initialize(rootPath: string): Promise<boolean> {
+  public async initialize(): Promise<boolean> {
     try {
-      // Install Git hook
-      this.gitHookInstaller = new GitHookInstaller(rootPath)
       await this.gitHookInstaller.installPostCommitHook()
-
-      // Set up commit event listener
-      this.commitEventListener = new CommitEventListener(
-        rootPath,
-        () => this.handleCommitEvent(),
-      )
       await this.commitEventListener.initialize()
-
-      console.log('CommitEventService: Successfully initialized')
       return true
     }
     catch (error) {
@@ -42,42 +34,24 @@ export class CommitEventService implements Disposable {
   }
 
   /**
-   * Register a callback to be called when a commit is detected
-   * @param callback The callback function
-   * @returns A disposable to unregister the callback
+   * Nastaví callback, který se zavolá při každém commitu
    */
-  public onCommit(callback: CommitCallback): Disposable {
-    if (this.commitCallback) {
-      throw new Error('Commit callback is already registered')
-    }
-
+  public setCommitCallback(callback: CommitCallback): void {
     this.commitCallback = callback
-
-    return {
-      dispose: () => {
-        this.commitCallback = undefined
-      },
-    }
   }
 
   /**
    * Handle commit events and notify all registered callbacks
    */
   private async handleCommitEvent(): Promise<void> {
-    try {
-      console.log('CommitEventService: Commit detected')
+    if (!this.commitCallback)
+      return
 
-      if (this.commitCallback) {
-        try {
-          await Promise.resolve(this.commitCallback())
-        }
-        catch (error) {
-          console.error('CommitEventService: Error in commit callback', error)
-        }
-      }
+    try {
+      await this.commitCallback()
     }
     catch (error) {
-      console.error('CommitEventService: Error handling commit event', error)
+      console.error('CommitEventService: Error in commit callback', error)
     }
   }
 
@@ -85,16 +59,7 @@ export class CommitEventService implements Disposable {
    * Dispose of resources
    */
   public dispose(): void {
-    if (this.commitEventListener) {
-      this.commitEventListener.dispose()
-      this.commitEventListener = undefined
-    }
-
-    if (this.gitHookInstaller) {
-      this.gitHookInstaller.dispose()
-      this.gitHookInstaller = undefined
-    }
-
-    this.commitCallback = undefined
+    this.commitEventListener.dispose()
+    this.gitHookInstaller.dispose()
   }
 }
