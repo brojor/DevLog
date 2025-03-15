@@ -4,11 +4,9 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
 /**
- * Manages Git hooks for a repository
+ * Installs Git hooks for a repository
  */
-export class GitHookManager implements vscode.Disposable {
-  private disposables: vscode.Disposable[] = []
-
+export class GitHookInstaller implements vscode.Disposable {
   constructor(private readonly rootPath: string) { }
 
   /**
@@ -19,7 +17,6 @@ export class GitHookManager implements vscode.Disposable {
       const hooksDir = path.join(this.rootPath, '.git', 'hooks')
       const hookPath = path.join(hooksDir, 'post-commit')
 
-      // Create hooks directory if it doesn't exist
       try {
         await fs.access(hooksDir, constants.F_OK)
       }
@@ -27,24 +24,18 @@ export class GitHookManager implements vscode.Disposable {
         await fs.mkdir(hooksDir, { recursive: true })
       }
 
-      // Check if hook already exists
       let existingHook = ''
       try {
         existingHook = await fs.readFile(hookPath, 'utf8')
       }
-      catch {
-        // Hook doesn't exist yet
-      }
+      catch { }
 
-      // If our code is already in the hook, don't modify it
-      if (existingHook.includes('# BEGIN TOGGL AUTO TRACKER')) {
+      if (existingHook.includes('# BEGIN DEVLOG COMMIT TRACKER')) {
         return
       }
 
-      // Prepare the new hook content
       const hookContent = this.generatePostCommitHook(existingHook)
 
-      // Write the hook file
       await fs.writeFile(hookPath, hookContent, { mode: 0o755 }) // Make executable
 
       console.log(`Post-commit hook installed at ${hookPath}`)
@@ -59,12 +50,11 @@ export class GitHookManager implements vscode.Disposable {
    */
   private generatePostCommitHook(existingContent: string): string {
     const ourHook = `
-# BEGIN TOGGL AUTO TRACKER
-# This section was automatically added by Toggl Auto Tracker VS Code extension
+# BEGIN DEVLOG COMMIT TRACKER
+# This section was automatically added by DevLog VS Code extension
 GIT_DIR=$(git rev-parse --git-dir)
-COMMIT_TIMESTAMP=$(git log -1 --pretty=%ct)
-git log -1 --pretty=%B > "\${GIT_DIR}/last-commit-info/\${COMMIT_TIMESTAMP}"
-# END TOGGL AUTO TRACKER
+touch "\${GIT_DIR}/.commit.done"
+# END DEVLOG COMMIT TRACKER
 `
 
     // If there's existing content, append our hook
@@ -84,6 +74,6 @@ git log -1 --pretty=%B > "\${GIT_DIR}/last-commit-info/\${COMMIT_TIMESTAMP}"
   }
 
   dispose(): void {
-    this.disposables.forEach(d => d.dispose())
+    // No resources to dispose of
   }
 }
