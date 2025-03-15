@@ -6,13 +6,12 @@ DevLog je automatizované řešení pro sledování času ve VS Code, které pom
 
 ## ✨ Funkce
 
-- **Automatické sledování aktivity** v editoru
-- **Detekce projektu** z konfiguračních souborů
-- **Heartbeat mechanismus** pro přesné měření času
+- **Automatické sledování času** pomocí pravidelných heartbeatů
+- **Monitorování stavu okna VS Code** pro přesné měření aktivního času
 - **Statistiky o změnách v kódu** (změněné soubory, přidané/odebrané řádky)
-- **Git integrace** pro sledování změn bez narušení pracovního adresáře
+- **Git integrace** pro sledování commitů a změn v kódu
 - **Minimální zásah do workflow vývojáře**
-- **Pozastavení sledování** jedním kliknutím
+- **Nízká režie systému** díky optimalizovanému přístupu k odesílání dat
 
 ## 🔧 Požadavky
 
@@ -46,6 +45,14 @@ Rozšíření automaticky sleduje vaši aktivitu a sbírá tyto statistiky:
 - Počet odebraných řádků kódu
 
 Statistiky jsou periodicky odesílány na server, který je zahrnuje do popisků time logs v Notion.
+
+## 🔄 Git integrace
+
+Rozšíření se integruje s Gitem:
+- Sleduje commity pomocí signálního mechanismu
+- Získává informace o commitech a repozitářích
+- Odesílá údaje na server pro vytvoření záznamů v Notion
+- Nenarušuje běžný workflow s Gitem
 
 ## 🔗 Další komponenty
 

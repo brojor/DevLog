@@ -9,20 +9,24 @@ VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje 
 ```
 packages/vscode-extension/
 ├── src/
-│   ├── extension.ts         # Hlavní vstupní bod rozšíření
-│   ├── ApiClient.ts         # Třída pro komunikaci se serverem
-│   ├── HeartbeatManager.ts  # Třída pro správu pravidelných heartbeatů
-│   ├── WindowStateManager.ts # Třída pro sledování stavu okna VS Code
-│   ├── GitStashManager.ts   # Třída pro správu Git stash hashů a statistik kódu
-│   ├── GitHookManager.ts    # Třída pro instalaci Git hooků
-│   ├── CommitWatcher.ts     # Třída pro sledování Git commitů
-│   ├── GitSupportManager.ts # Třída pro koordinaci Git podpory
-│   ├── StatsReporter.ts     # Třída pro pravidelné odesílání statistik
-│   └── SessionManager.ts    # Třída pro správu sessions
-├── .vscodeignore            # Soubory ignorované při publikování
-├── package.json             # Metadata a konfigurace rozšíření
-├── tsconfig.json            # Konfigurace TypeScript
-└── vite.config.ts           # Konfigurace Vite pro build
+│   ├── extension.ts             # Hlavní vstupní bod rozšíření
+│   ├── ApiClient.ts             # Třída pro komunikaci se serverem
+│   ├── HeartbeatManager.ts      # Třída pro správu pravidelných heartbeatů
+│   ├── WindowStateManager.ts    # Třída pro sledování stavu okna VS Code
+│   ├── GitStashManager.ts       # Třída pro správu Git stash hashů a statistik kódu
+│   ├── GitHookInstaller.ts      # Třída pro instalaci Git hooků
+│   ├── CommitEventListener.ts   # Třída pro naslouchání commit událostem
+│   ├── CommitEventService.ts    # Služba pro detekci a zpracování commit událostí
+│   ├── CommitInfoService.ts     # Služba pro získávání informací o commitech
+│   ├── GitRepositoryProvider.ts # Poskytovatel přístupu k Git repozitářům
+│   ├── GitIntegrationService.ts # Služba koordinující Git funkcionalitu
+│   ├── StatsReporter.ts         # Třída pro pravidelné odesílání statistik
+│   ├── SessionManager.ts        # Třída pro správu sessions
+│   └── types/                   # TypeScript definice a typy
+├── .vscodeignore               # Soubory ignorované při publikování
+├── package.json                # Metadata a konfigurace rozšíření
+├── tsconfig.json               # Konfigurace TypeScript
+└── vite.config.ts              # Konfigurace Vite pro build
 ```
 
 ## Klíčové komponenty
@@ -34,7 +38,7 @@ Třída `HeartbeatManager` je zodpovědná za pravidelné odesílání heartbeat
 **Klíčové funkce:**
 - Vytváří a spravuje interval pro pravidelné odesílání heartbeatů
 - Aktivuje/deaktivuje odesílání heartbeatů na základě stavu okna VS Code
-- Používá konstantu `IDE_HEARTBEAT_INTERVAL_MS` ze sdílených konstant pro nastavení intervalu
+- Používá konstantu `TIME_CONSTANTS.IDE_HEARTBEAT_INTERVAL_MS` ze sdílených konstant pro nastavení intervalu
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
 **Hlavní metody:**
@@ -92,42 +96,82 @@ Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získáv
 - Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
 - Při absenci změn používá HEAD jako referenční bod
 
-### 5. GitHookManager
+### 5. GitHookInstaller
 
-Třída `GitHookManager` je zodpovědná za instalaci a správu Git post-commit hooků v repozitáři.
+Třída `GitHookInstaller` je zodpovědná za instalaci Git post-commit hooků v repozitáři.
 
 **Hlavní metody:**
 - `installPostCommitHook()`: Instaluje post-commit hook do repozitáře
 
 **Implementační detaily:**
-- Vytváří Git hook skripty, které ukládají commit zprávy do speciálního adresáře
+- Vytváří Git hook skripty, které aktualizují signální soubor `.git/.commit.done`
 - Zachovává existující funkcionalitu hooků, pokud už existují
-- Používá jméno souboru (timestamp commitu) pro identifikaci commit zpráv
+- Zajišťuje, že hook má správná oprávnění pro spuštění
 
-### 6. CommitWatcher
+### 6. CommitEventListener
 
-Třída `CommitWatcher` sleduje změny v adresáři `.git/last-commit-info` a detekuje nové commity.
+Třída `CommitEventListener` naslouchá změnám signálního souboru a detekuje Git commity.
 
 **Klíčové funkce:**
-- Vytváří adresář pro commit informace, pokud neexistuje
-- Sleduje vytváření nových souborů v adresáři
-- Zpracovává nové soubory, extrahuje commit zprávy a časové značky
-- Po zpracování odstraňuje soubory pro udržení čistoty
+- Zajišťuje existenci signálního souboru `.git/.commit.done`
+- Sleduje změny tohoto souboru
+- Notifikuje o nových commitech přes callback funkci
 
 **Hlavní metody:**
-- `initialize()`: Připraví adresář a spustí sledování
-- `start()`: Spustí sledování adresáře
+- `initialize()`: Připraví signální soubor a spustí sledování
+- `dispose()`: Uvolní použité zdroje
 
-### 7. GitSupportManager
+### 7. CommitEventService
 
-Třída `GitSupportManager` koordinuje Git funkcionalitu, propojuje `GitHookManager`, `CommitWatcher` a `ApiClient`.
+Třída `CommitEventService` koordinuje detekci Git commit událostí.
 
 **Klíčové funkce:**
-- Inicializuje a spravuje `GitHookManager` a `CommitWatcher`
-- Reaguje na nové commity a získává aktuální statistiky kódu
-- Odesílá commit informace a statistiky na server
+- Inicializuje `GitHookInstaller` pro nastavení Git hook
+- Spravuje `CommitEventListener` pro detekci změn
+- Poskytuje rozhraní pro registraci callback funkcí
 
-### 8. StatsReporter
+**Hlavní metody:**
+- `initialize()`: Inicializuje potřebné komponenty
+- `setCommitCallback(callback)`: Nastavuje callback pro commit události
+- `dispose()`: Uvolní použité zdroje
+
+### 8. CommitInfoService
+
+Třída `CommitInfoService` získává strukturované informace o Git commitech.
+
+**Klíčové funkce:**
+- Extrahuje informace o commitu z Git repozitáře
+- Získává informace o repozitáři (owner, name)
+- Transformuje data do formátu `CommitInfo`
+
+**Hlavní metody:**
+- `getCommitInfo(repository, commitHash?)`: Získává informace o konkrétním commitu nebo HEAD
+
+### 9. GitRepositoryProvider
+
+Třída `GitRepositoryProvider` poskytuje přístup k Git repozitářům.
+
+**Klíčové funkce:**
+- Inicializuje VS Code Git API
+- Poskytuje přístup k aktuálnímu repozitáři
+
+**Hlavní metody:**
+- `getActiveRepository()`: Získává aktivní repozitář
+
+### 10. GitIntegrationService
+
+Třída `GitIntegrationService` koordinuje Git funkcionalitu a integraci s API.
+
+**Klíčové funkce:**
+- Inicializuje všechny potřebné Git služby
+- Reaguje na commit události
+- Získává informace o commitech a odesílá je na server
+
+**Hlavní metody:**
+- `initialize()`: Inicializuje Git integraci a nastavuje naslouchání commit událostem
+- `dispose()`: Uvolní použité zdroje
+
+### 11. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
 
@@ -137,27 +181,24 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 - Odesílá statistiky pouze když došlo k uložení souboru od posledního odeslání
 - Využívá `GitStashManager` pro získání aktuálních statistik
 - Využívá `ApiClient` pro odeslání statistik na server
-- Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
 **Hlavní metody:**
 - `start()`: Spustí pravidelné odesílání statistik
 - `stop()`: Zastaví pravidelné odesílání statistik
 - `reportStats()`: Získá a odešle statistiky, pokud došlo k uložení souboru
 
-**Optimalizace:**
-- Provádí náročnou operaci git diff pouze když je skutečně potřeba (po uložení souboru)
-- Sleduje příznak `fileWasSaved`, který indikuje, zda došlo k uložení souboru od posledního odeslání statistik
-- Šetří systémové zdroje vynecháním zbytečných git diff operací, když se kód nezměnil
+### 12. SessionManager
 
-### 9. SessionManager
-
-Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při prvním spuštění nebo po dlouhé neaktivitě.
+Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při změně sessionId.
 
 **Klíčové funkce:**
-- Správa stavů relace (aktivní, neaktivní)
-- Koordinace vytváření nových Git stash hashů
+- Reaguje na změny sessionId z API
+- Koordinuje vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
-- Pracuje s novým typem sessionId (string místo number)
+
+**Hlavní metody:**
+- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID
+- `dispose()`: Uvolní použité zdroje
 
 ## Hlavní funkcionalita
 
@@ -192,16 +233,28 @@ Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním zp�
 ### Sledování Git commitů
 
 Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
-1. Při inicializaci nainstaluje post-commit hook do Git repozitáře
-2. Hook po každém commitu zapíše commit zprávu a timestamp do souboru v adresáři `.git/last-commit-info`
-3. CommitWatcher sleduje tento adresář a reaguje na vytváření nových souborů
-4. Při detekci commitu:
-   - Přečte commit zprávu ze souboru
-   - Získá timestamp z názvu souboru
-   - Získá aktuální statistiky kódu
-   - Odešle tyto informace na server
-5. Server použije tyto informace pro vytvoření nového záznamu v Notion s popisem založeným na commit zprávě
-6. Tento přístup zajišťuje spolehlivou detekci pouze úspěšných commitů
+1. `GitHookInstaller` nainstaluje post-commit hook, který aktualizuje signální soubor `.git/.commit.done`
+2. `CommitEventListener` naslouchá změnám tohoto signálního souboru
+3. Při detekci commitu:
+   - `CommitEventService` vyvolá nastavený callback
+   - `GitIntegrationService` získá informace o commitu pomocí `CommitInfoService`
+   - Informace o commitu jsou odeslány na server pomocí `ApiClient`
+4. Server použije tyto informace pro vytvoření nového záznamu v Notion
+
+## Architektura Git podpory
+
+Nová implementace Git podpory využívá zlepšenou architekturu:
+
+1. **GitRepositoryProvider** - poskytuje přístup k Git repozitářům
+2. **CommitEventListener** - detekuje commit události pomocí signálního souboru
+3. **CommitEventService** - koordinuje detekci a zpracování commit událostí
+4. **CommitInfoService** - získává strukturované informace o commitech
+5. **GitIntegrationService** - koordinuje Git služby a integraci s API
+
+Tato architektura respektuje SOLID principy:
+- Každá třída má jednu jasně definovanou odpovědnost
+- Závislosti jsou jasně definované a předávané
+- Kód je lépe testovatelný a udržovatelný
 
 ## Konfigurace
 
