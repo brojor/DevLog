@@ -9,24 +9,28 @@ VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje 
 ```
 packages/vscode-extension/
 ├── src/
-│   ├── extension.ts             # Hlavní vstupní bod rozšíření
-│   ├── ApiClient.ts             # Třída pro komunikaci se serverem
+│   ├── extension.ts               # Hlavní vstupní bod rozšíření
+│   ├── ApiClient.ts               # Třída pro komunikaci se serverem
 │   ├── ActivityTrackingService.ts # Služba pro sledování aktivity v VS Code
-│   ├── HeartbeatManager.ts      # Třída pro správu pravidelných heartbeatů
-│   ├── WindowStateManager.ts    # Třída pro sledování stavu okna VS Code
-│   ├── GitStashManager.ts       # Třída pro správu Git stash hashů a statistik kódu
-│   ├── GitHookInstaller.ts      # Třída pro instalaci Git hooků
-│   ├── CommitEventListener.ts   # Třída pro naslouchání commit událostem
-│   ├── CommitTrackingService.ts # Služba pro sledování a zpracování commit událostí
-│   ├── CommitInfoService.ts     # Služba pro získávání informací o commitech
-│   ├── GitRepositoryProvider.ts # Poskytovatel přístupu k Git repozitářům
-│   ├── StatsReporter.ts         # Třída pro reportování statistik kódu
+│   ├── HeartbeatManager.ts        # Třída pro správu pravidelných heartbeatů
+│   ├── WindowStateManager.ts      # Třída pro sledování stavu okna VS Code
+│   ├── GitReferenceManager.ts     # Třída pro správu Git referenčních bodů
+│   ├── CodeStatsGenerator.ts      # Třída pro generování statistik o změnách v kódu
+│   ├── GitHookInstaller.ts        # Třída pro instalaci Git hooků
+│   ├── CommitEventListener.ts     # Třída pro naslouchání commit událostem
+│   ├── CommitTrackingService.ts   # Služba pro sledování a zpracování commit událostí
+│   ├── CommitInfoService.ts       # Služba pro získávání informací o commitech
+│   ├── GitRepositoryProvider.ts   # Poskytovatel přístupu k Git repozitářům
+│   ├── StatsReporter.ts           # Třída pro reportování statistik kódu
 │   ├── CodeStatsTrackingService.ts # Služba pro sledování a správu statistik kódu
-│   └── types/                   # TypeScript definice a typy
-├── .vscodeignore               # Soubory ignorované při publikování
-├── package.json                # Metadata a konfigurace rozšíření
-├── tsconfig.json               # Konfigurace TypeScript
-└── vite.config.ts              # Konfigurace Vite pro build
+│   ├── utils/
+│   │   ├── shell.ts               # Utility pro práci s shell příkazy
+│   │   └── workspace.ts           # Utility pro práci s VS Code workspace
+│   └── types/                     # TypeScript definice a typy
+├── .vscodeignore                  # Soubory ignorované při publikování
+├── package.json                   # Metadata a konfigurace rozšíření
+├── tsconfig.json                  # Konfigurace TypeScript
+└── vite.config.ts                 # Konfigurace Vite pro build
 ```
 
 ## Klíčové komponenty
@@ -108,41 +112,51 @@ Třída `HeartbeatManager` je zodpovědná za pravidelné odesílání heartbeat
 Třída `CodeStatsTrackingService` je zodpovědná za koordinaci sledování statistik kódu.
 
 **Klíčové funkce:**
-- Vytváří a spravuje `GitStashManager` a `StatsReporter`
+- Vytváří a spravuje `GitReferenceManager` a `StatsReporter`
 - Reaguje na změny sessionId z `ApiClient`
-- Koordinuje vytváření nových Git stash hashů
+- Koordinuje vytváření nových Git referenčních bodů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
 **Hlavní metody:**
 - `forceReportStats(reason?)`: Vynutí okamžité odeslání statistik s volitelným důvodem pro log
-- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID, vytváří nový stash hash
+- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID, vytváří nový referenční bod
 - `dispose()`: Uvolní použité zdroje
 
-### 6. GitStashManager
+### 6. GitReferenceManager
 
-Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získávání statistik o změnách v kódu.
+Třída `GitReferenceManager` je zodpovědná za vytváření a správu Git referenčních bodů.
+
+**Klíčové funkce:**
+- Zaměřuje se výhradně na správu referenčních bodů v Git repozitáři
+- Pracuje s konkrétním pracovním adresářem, který je předán při inicializaci
+- Ukládá a poskytuje přístup k aktuálnímu referenčnímu hash
 
 **Hlavní metody:**
-- `createStashHash()`: Vytváří nový stash hash bez ovlivnění pracovního adresáře
-- `getStashHash()`: Vrací aktuálně používaný stash hash
-- `getDiffStats()`: Získává statistiky o změnách v kódu oproti referenčnímu stash hashi
+- `createReferencePoint()`: Vytváří nový referenční bod bez ovlivnění pracovního adresáře
+- `referenceHash` (getter): Poskytuje přístup k aktuálnímu referenčnímu hashi
 
-**Implementační detaily:**
-- Pracuje s Git příkazy pomocí Node.js child_process
-- Používá `git stash create` pro vytvoření referenčního bodu bez ovlivnění pracovního adresáře
-- Používá `git diff --shortstat` pro získání statistik o změnách
-- Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
-- Při absenci změn používá HEAD jako referenční bod
+### 7. CodeStatsGenerator
 
-### 7. StatsReporter
+Třída `CodeStatsGenerator` je zodpovědná za generování statistik o změnách v kódu.
 
-Třída `StatsReporter` je zodpovědná za získávání a odesílání statistik o změnách v kódu.
+**Klíčové funkce:**
+- Specializuje se výhradně na generování statistik z git diffu
+- Pracuje s konkrétním pracovním adresářem a podporuje filtrování souborů
+- Používá Git diff příkazy pro získání statistik
+
+**Hlavní metody:**
+- `generateStats(referenceHash)`: Generuje statistiky na základě poskytnutého referenčního hashe
+- `parseGitDiffShortstat(diffOutput)`: Parsuje výstup příkazu git diff --shortstat
+
+### 8. StatsReporter
+
+Třída `StatsReporter` je zodpovědná za reportování statistik o změnách v kódu.
 
 **Klíčové funkce:**
 - Používá debouncing mechanismus pro optimalizaci odesílání statistik
 - Sleduje události uložení souborů a smazání souborů
 - Získává statistiky pouze při významných změnách
-- Využívá `GitStashManager` pro získání aktuálních statistik
+- Využívá `GitReferenceManager` a `CodeStatsGenerator` pro získání aktuálních statistik
 - Využívá `ApiClient` pro odeslání statistik na server
 
 **Hlavní metody:**
@@ -150,7 +164,7 @@ Třída `StatsReporter` je zodpovědná za získávání a odesílání statisti
 - `reportStats()`: Získá a odešle statistiky kódu
 - `dispose()`: Uvolní použité zdroje
 
-### 8. CommitTrackingService
+### 9. CommitTrackingService
 
 Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Git commit událostí.
 
@@ -164,6 +178,16 @@ Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Gi
 - `initialize()`: Inicializuje Git hook a commit listener
 - `handleCommit()`: Zpracovává detekci commitu - získává informace a odesílá je na server
 - `dispose()`: Uvolní použité zdroje
+
+### 10. Utility moduly
+
+**shell.ts**
+- Obsahuje funkci `runCommand` pro spouštění shell příkazů
+- Zjednodušuje práci s příkazy příkazového řádku
+
+**workspace.ts**
+- Obsahuje funkci `getWorkspacePath` pro získání cesty k aktuálnímu workspace
+- Centralizuje logiku pro přístup k VS Code workspace API
 
 ## Architektura
 
@@ -180,7 +204,8 @@ Rozšíření používá modulární architekturu s jasně oddělenými zodpově
 3. **Správci funkcí** (low-level):
    - `WindowStateManager` - sleduje stav okna VS Code a emituje události
    - `HeartbeatManager` - zajišťuje pravidelné odesílání heartbeatů
-   - `GitStashManager` - poskytuje přístup k Git statistikám
+   - `GitReferenceManager` - poskytuje přístup k Git referenčním bodům
+   - `CodeStatsGenerator` - generuje statistiky o změnách v kódu
    - `StatsReporter` - reportuje statistiky kódu
 
 4. **Tok dat a událostí**:
@@ -218,11 +243,11 @@ Rozšíření používá pravidelné heartbeaty namísto sledování konkrétní
 ### Sledování statistik o změnách v kódu
 
 Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním způsobem:
-1. `CodeStatsTrackingService` vytváří a spravuje `GitStashManager` a `StatsReporter`
-2. Při změně sessionId vytváří nový referenční bod pomocí Git stash hashe
+1. `CodeStatsTrackingService` vytváří a spravuje `GitReferenceManager` a `StatsReporter`
+2. Při změně sessionId vytváří nový referenční bod pomocí `GitReferenceManager`
 3. `StatsReporter` používá debouncing mechanismus pro sledování změn v kódu
 4. Reaguje na události uložení a smazání souborů
-5. Po uplynutí debouncing intervalu získává a odesílá statistiky o změnách
+5. Po uplynutí debouncing intervalu získává statistiky pomocí `CodeStatsGenerator`
 6. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
 7. Server používá tyto statistiky k obohacení popisků time logs v Notion
 
