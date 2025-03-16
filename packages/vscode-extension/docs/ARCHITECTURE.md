@@ -11,6 +11,7 @@ packages/vscode-extension/
 ├── src/
 │   ├── extension.ts             # Hlavní vstupní bod rozšíření
 │   ├── ApiClient.ts             # Třída pro komunikaci se serverem
+│   ├── ActivityTrackingService.ts # Služba pro sledování aktivity v VS Code
 │   ├── HeartbeatManager.ts      # Třída pro správu pravidelných heartbeatů
 │   ├── WindowStateManager.ts    # Třída pro sledování stavu okna VS Code
 │   ├── GitStashManager.ts       # Třída pro správu Git stash hashů a statistik kódu
@@ -30,7 +31,64 @@ packages/vscode-extension/
 
 ## Klíčové komponenty
 
-### 1. HeartbeatManager
+### 1. ApiClient
+
+Třída `ApiClient` zajišťuje komunikaci s centrálním serverem.
+
+**Klíčové funkce:**
+- Implementuje rozhraní `vscode.Disposable`
+- Zajišťuje odeslání všech typů dat na server
+- Emituje události o změnách sessionId
+- Obsahuje validaci URL serveru
+
+**Hlavní metody:**
+- `sendHeartbeat(data)`: Odesílá heartbeat data na server
+- `sendStats(data)`: Odesílá statistiky o změnách v kódu na server
+- `sendCommitInfo(commitInfo)`: Odesílá informace o commitu na server
+- `sendWindowState(windowStateEvent)`: Odesílá informace o stavu okna na server
+- `dispose()`: Uvolňuje použité zdroje
+
+**Implementační detaily:**
+- Získává URL serveru z konfigurace rozšíření
+- Odesílá data pomocí HTTP POST požadavku
+- Správa identifikátoru session (sessionId)
+- Ošetřuje chyby při komunikaci se serverem
+- Vrací Promise pro asynchronní operace
+- Používá typované rozhraní pro odesílaná data
+
+### 2. ActivityTrackingService
+
+Služba `ActivityTrackingService` koordinuje sledování aktivity uživatele v VS Code.
+
+**Klíčové funkce:**
+- Propojuje WindowStateManager a HeartbeatManager
+- Zpracovává změny stavu okna VS Code
+- Aktivuje/deaktivuje odesílání heartbeatů podle stavu okna
+- Odesílá informace o stavu okna na server
+- Implementuje rozhraní `vscode.Disposable`
+
+**Hlavní metody:**
+- `handleWindowStateChange(state)`: Zpracovává změny stavu okna
+- `sendWindowState(state)`: Odesílá stav okna na server
+- `dispose()`: Uvolňuje použité zdroje
+
+### 3. WindowStateManager
+
+Třída `WindowStateManager` je zodpovědná za sledování stavu okna VS Code (aktivní/neaktivní, fokus).
+
+**Klíčové funkce:**
+- Sleduje události změny stavu okna VS Code
+- Používá EventEmitter pro notifikace o změnách stavu
+- Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
+- Poskytuje přístup k aktuálnímu stavu okna
+
+**Hlavní metody:**
+- `onStateChange`: Event poskytující notifikace při změně stavu okna
+- `handleWindowStateChange(e)`: Zpracovává změnu stavu okna
+- `state` (getter): Poskytuje aktuální stav okna
+- `dispose()`: Uvolní použité zdroje
+
+### 4. HeartbeatManager
 
 Třída `HeartbeatManager` je zodpovědná za pravidelné odesílání heartbeatů na server.
 
@@ -45,41 +103,22 @@ Třída `HeartbeatManager` je zodpovědná za pravidelné odesílání heartbeat
 - `sendHeartbeat()`: Odešle aktuální heartbeat na server
 - `dispose()`: Uvolní zdroje (vyčistí interval)
 
-### 2. WindowStateManager
+### 5. CodeStatsTrackingService
 
-Třída `WindowStateManager` je zodpovědná za sledování stavu okna VS Code (aktivní/neaktivní, fokus).
+Třída `CodeStatsTrackingService` je zodpovědná za koordinaci sledování statistik kódu.
 
 **Klíčové funkce:**
-- Sleduje události změny stavu okna VS Code
-- Odesílá informace o změnách stavu okna na server
-- Informuje ostatní komponenty o změnách stavu pomocí callback funkce
+- Vytváří a spravuje `GitStashManager` a `StatsReporter`
+- Reaguje na změny sessionId z `ApiClient`
+- Koordinuje vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
 **Hlavní metody:**
-- `onStateChange(callback)`: Nastavuje callback, který bude volán při každé změně stavu okna
-- `handleWindowStateChange(e)`: Zpracovává změnu stavu okna
-- `sendWindowState()`: Odesílá aktuální stav okna na server
-- `state` (getter): Poskytuje aktuální stav okna
+- `forceReportStats(reason?)`: Vynutí okamžité odeslání statistik s volitelným důvodem pro log
+- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID, vytváří nový stash hash
+- `dispose()`: Uvolní použité zdroje
 
-### 3. ApiClient
-
-Třída `ApiClient` zajišťuje komunikaci s centrálním serverem.
-
-**Hlavní metody:**
-- `sendHeartbeat(data)`: Odesílá heartbeat data na server
-- `sendStats(data)`: Odesílá statistiky o změnách v kódu na server
-- `sendCommitInfo(commitInfo)`: Odesílá informace o commitu na server
-- `sendWindowState(windowStateEvent)`: Odesílá informace o stavu okna na server
-
-**Implementační detaily:**
-- Získává URL serveru z konfigurace rozšíření
-- Odesílá data pomocí HTTP POST požadavku
-- Správa identifikátoru session (sessionId)
-- Ošetřuje chyby při komunikaci se serverem
-- Vrací Promise pro asynchronní operace
-- Používá typované rozhraní pro odesílaná data
-
-### 4. GitStashManager
+### 6. GitStashManager
 
 Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získávání statistik o změnách v kódu.
 
@@ -95,71 +134,7 @@ Třída `GitStashManager` je zodpovědná za správu Git stash hashů a získáv
 - Podporuje filtrování souborů, které nemají být zahrnuty do statistik (např. lock soubory)
 - Při absenci změn používá HEAD jako referenční bod
 
-### 5. GitHookInstaller
-
-Třída `GitHookInstaller` je zodpovědná za instalaci Git post-commit hooků v repozitáři.
-
-**Hlavní metody:**
-- `installPostCommitHook()`: Instaluje post-commit hook do repozitáře
-- `dispose()`: Uvolní použité zdroje
-
-**Implementační detaily:**
-- Vytváří Git hook skripty, které aktualizují signální soubor `.git/.commit.done`
-- Zachovává existující funkcionalitu hooků, pokud už existují
-- Zajišťuje, že hook má správná oprávnění pro spuštění
-
-### 6. CommitEventListener
-
-Třída `CommitEventListener` naslouchá změnám signálního souboru a detekuje Git commity.
-
-**Klíčové funkce:**
-- Zajišťuje existenci signálního souboru `.git/.commit.done`
-- Sleduje změny tohoto souboru
-- Notifikuje o nových commitech přes callback funkci
-
-**Hlavní metody:**
-- `initialize()`: Připraví signální soubor a spustí sledování
-- `dispose()`: Uvolní použité zdroje
-
-### 7. CommitTrackingService
-
-Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Git commit událostí.
-
-**Klíčové funkce:**
-- Integruje Git funkcionalitu s DevLog backendem pro sledování commitů
-- Obsahuje instance `GitRepositoryProvider`, `CommitInfoService`, `GitHookInstaller` a `CommitEventListener`
-- Zajišťuje instalaci Git hooků a naslouchání commit událostem
-- Zpracovává detekované commity a odesílá informace na server
-
-**Hlavní metody:**
-- `initialize()`: Inicializuje Git hook a commit listener
-- `handleCommit()`: Zpracovává detekci commitu - získává informace a odesílá je na server
-- `dispose()`: Uvolní použité zdroje
-
-### 8. CommitInfoService
-
-Třída `CommitInfoService` získává strukturované informace o Git commitech.
-
-**Klíčové funkce:**
-- Extrahuje informace o commitu z Git repozitáře
-- Získává informace o repozitáři (owner, name)
-- Transformuje data do formátu `CommitInfo`
-
-**Hlavní metody:**
-- `getCommitInfo(repository, commitHash?)`: Získává informace o konkrétním commitu nebo HEAD
-
-### 9. GitRepositoryProvider
-
-Třída `GitRepositoryProvider` poskytuje přístup k Git repozitářům.
-
-**Klíčové funkce:**
-- Inicializuje VS Code Git API
-- Poskytuje přístup k aktuálnímu repozitáři
-
-**Hlavní metody:**
-- `getActiveRepository()`: Získává aktivní repozitář
-
-### 10. StatsReporter
+### 7. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za získávání a odesílání statistik o změnách v kódu.
 
@@ -175,22 +150,62 @@ Třída `StatsReporter` je zodpovědná za získávání a odesílání statisti
 - `reportStats()`: Získá a odešle statistiky kódu
 - `dispose()`: Uvolní použité zdroje
 
-### 11. CodeStatsTrackingService
+### 8. CommitTrackingService
 
-Třída `CodeStatsTrackingService` je zodpovědná za koordinaci sledování statistik kódu.
+Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Git commit událostí.
 
 **Klíčové funkce:**
-- Spravuje `StatsReporter`
-- Reaguje na změny sessionId z `ApiClient`
-- Koordinuje vytváření nových Git stash hashů
-- Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
+- Integruje Git funkcionalitu s DevLog backendem pro sledování commitů
+- Obsahuje instance `GitRepositoryProvider`, `CommitInfoService`, `GitHookInstaller` a `CommitEventListener`
+- Zajišťuje instalaci Git hooků a naslouchání commit událostem
+- Zpracovává detekované commity a odesílá informace na server
 
 **Hlavní metody:**
-- `forceReportStats(reason?)`: Vynutí okamžité odeslání statistik s volitelným důvodem pro log
-- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID, vytváří nový stash hash
+- `initialize()`: Inicializuje Git hook a commit listener
+- `handleCommit()`: Zpracovává detekci commitu - získává informace a odesílá je na server
 - `dispose()`: Uvolní použité zdroje
 
+## Architektura
+
+Rozšíření používá modulární architekturu s jasně oddělenými zodpovědnostmi:
+
+1. **Hlavní služby** (high-level):
+   - `ActivityTrackingService` - zodpovědná za sledování aktivity v VS Code a řízení heartbeatů
+   - `CodeStatsTrackingService` - zodpovědná za sledování a reportování statistik kódu
+   - `CommitTrackingService` - zodpovědná za sledování Git commitů
+
+2. **Komunikační vrstva**:
+   - `ApiClient` - centrální bod pro komunikaci se serverem, implementuje `Disposable`
+
+3. **Správci funkcí** (low-level):
+   - `WindowStateManager` - sleduje stav okna VS Code a emituje události
+   - `HeartbeatManager` - zajišťuje pravidelné odesílání heartbeatů
+   - `GitStashManager` - poskytuje přístup k Git statistikám
+   - `StatsReporter` - reportuje statistiky kódu
+
+4. **Tok dat a událostí**:
+   - VS Code události (stav okna) -> `WindowStateManager` -> `ActivityTrackingService`
+   - Změna stavu okna -> `ActivityTrackingService` -> `HeartbeatManager`/`ApiClient`
+   - Uložení souborů/smazání -> `StatsReporter` -> `CodeStatsTrackingService`
+   - Git commit -> `CommitEventListener` -> `CommitTrackingService` -> `ApiClient`
+
+Tato architektura dodržuje několik důležitých principů:
+
+1. **Jednotná odpovědnost (SRP)** - Každá třída má jasně definovanou jednu zodpovědnost
+2. **Injekce závislostí (DI)** - Závislosti jsou předávány v konstruktoru
+3. **Efektivní správa zdrojů** - Všechny třídy implementují `Disposable` pro uvolnění zdrojů
+4. **Event-driven přístup** - Služby reagují na události (změna stavu okna, uložení souboru)
+5. **High-level koordinátoři** - Hlavní služby koordinují low-level managery a poskytují jednotný interface
+
 ## Hlavní funkcionalita
+
+### Sledování aktivity v VS Code
+
+Rozšíření monitoruje aktivitu v VS Code:
+1. `WindowStateManager` sleduje stav okna (aktivní/neaktivní, fokus/bez fokusu)
+2. `ActivityTrackingService` koordinuje aktivity na základě změn stavu
+3. Aktivace/deaktivace odesílání heartbeatů podle stavu okna
+4. Odesílání informací o stavu okna na server pro sledování času
 
 ### Heartbeat mechanismus
 
@@ -200,53 +215,27 @@ Rozšíření používá pravidelné heartbeaty namísto sledování konkrétní
 3. Heartbeaty obsahují základní informace (timestamp, zdroj)
 4. Server používá heartbeaty pro detekci aktivních sessions
 
-### Sledování stavu okna
-
-Rozšíření monitoruje stav okna VS Code, což umožňuje:
-1. Odesílat heartbeaty pouze když je okno aktivní
-2. Informovat server o změnách stavu okna (aktivní/neaktivní, fokus)
-3. Detekovat přepínání mezi různými aplikacemi
-4. Optimalizovat využití síťových prostředků
-
 ### Sledování statistik o změnách v kódu
 
 Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním způsobem:
-1. Při inicializaci vytvoří referenční bod pomocí Git stash hashe
-2. Používá debouncing mechanismus pro sledování změn v kódu
-3. Reaguje na události uložení a smazání souborů
-4. Po uplynutí debouncing intervalu získává a odesílá statistiky o změnách
-5. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
-6. Server používá tyto statistiky k obohacení popisků time logs v Notion
+1. `CodeStatsTrackingService` vytváří a spravuje `GitStashManager` a `StatsReporter`
+2. Při změně sessionId vytváří nový referenční bod pomocí Git stash hashe
+3. `StatsReporter` používá debouncing mechanismus pro sledování změn v kódu
+4. Reaguje na události uložení a smazání souborů
+5. Po uplynutí debouncing intervalu získává a odesílá statistiky o změnách
+6. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
+7. Server používá tyto statistiky k obohacení popisků time logs v Notion
 
 ### Sledování Git commitů
 
 Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
-1. `GitHookInstaller` nainstaluje post-commit hook, který aktualizuje signální soubor `.git/.commit.done`
+1. `GitHookInstaller` nainstaluje post-commit hook, který aktualizuje signální soubor
 2. `CommitEventListener` naslouchá změnám tohoto signálního souboru
 3. Při detekci commitu:
    - `CommitTrackingService` zpracuje událost commitu
    - Získá informace o commitu pomocí `CommitInfoService` a `GitRepositoryProvider`
    - Informace o commitu jsou odeslány na server pomocí `ApiClient`
 4. Server použije tyto informace pro vytvoření nového záznamu v Notion
-
-## Architektura
-
-Rozšíření používá modulární architekturu s jasně oddělenými zodpovědnostmi:
-
-1. **Hlavní služby**:
-   - `CommitTrackingService` - zodpovědná za sledování Git commitů
-   - `CodeStatsTrackingService` - zodpovědná za sledování a reportování statistik kódu
-   - Třetí služba pro sledování aktivity uživatele (HeartbeatManager + WindowStateManager)
-
-2. **Závislosti**:
-   - `ApiClient` - centrální bod pro komunikaci se serverem
-   - `GitStashManager` - poskytuje přístup k Git statistikám
-   - Další podpůrné třídy pro specifické funkce
-
-3. **Tok událostí**:
-   - VS Code události (uložení souboru, smazání souboru) -> debouncing -> reportování statistik
-   - Změny stavu okna VS Code -> změna stavu HeartbeatManager
-   - Git commit -> detekce přes hook -> odeslání informací na server
 
 ## Konfigurace
 
