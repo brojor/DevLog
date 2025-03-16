@@ -16,10 +16,9 @@ packages/vscode-extension/
 │   ├── GitStashManager.ts       # Třída pro správu Git stash hashů a statistik kódu
 │   ├── GitHookInstaller.ts      # Třída pro instalaci Git hooků
 │   ├── CommitEventListener.ts   # Třída pro naslouchání commit událostem
-│   ├── CommitEventService.ts    # Služba pro detekci a zpracování commit událostí
+│   ├── CommitTrackingService.ts # Služba pro sledování a zpracování commit událostí
 │   ├── CommitInfoService.ts     # Služba pro získávání informací o commitech
 │   ├── GitRepositoryProvider.ts # Poskytovatel přístupu k Git repozitářům
-│   ├── GitIntegrationService.ts # Služba koordinující Git funkcionalitu
 │   ├── StatsReporter.ts         # Třída pro pravidelné odesílání statistik
 │   ├── SessionManager.ts        # Třída pro správu sessions
 │   └── types/                   # TypeScript definice a typy
@@ -102,6 +101,7 @@ Třída `GitHookInstaller` je zodpovědná za instalaci Git post-commit hooků v
 
 **Hlavní metody:**
 - `installPostCommitHook()`: Instaluje post-commit hook do repozitáře
+- `dispose()`: Uvolní použité zdroje
 
 **Implementační detaily:**
 - Vytváří Git hook skripty, které aktualizují signální soubor `.git/.commit.done`
@@ -121,18 +121,19 @@ Třída `CommitEventListener` naslouchá změnám signálního souboru a detekuj
 - `initialize()`: Připraví signální soubor a spustí sledování
 - `dispose()`: Uvolní použité zdroje
 
-### 7. CommitEventService
+### 7. CommitTrackingService
 
-Třída `CommitEventService` koordinuje detekci Git commit událostí.
+Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Git commit událostí.
 
 **Klíčové funkce:**
-- Inicializuje `GitHookInstaller` pro nastavení Git hook
-- Spravuje `CommitEventListener` pro detekci změn
-- Poskytuje rozhraní pro registraci callback funkcí
+- Integruje Git funkcionalitu s DevLog backendem pro sledování commitů
+- Obsahuje instance `GitRepositoryProvider`, `CommitInfoService`, `GitHookInstaller` a `CommitEventListener`
+- Zajišťuje instalaci Git hooků a naslouchání commit událostem
+- Zpracovává detekované commity a odesílá informace na server
 
 **Hlavní metody:**
-- `initialize()`: Inicializuje potřebné komponenty
-- `setCommitCallback(callback)`: Nastavuje callback pro commit události
+- `initialize()`: Inicializuje Git hook a commit listener
+- `handleCommit()`: Zpracovává detekci commitu - získává informace a odesílá je na server
 - `dispose()`: Uvolní použité zdroje
 
 ### 8. CommitInfoService
@@ -158,20 +159,7 @@ Třída `GitRepositoryProvider` poskytuje přístup k Git repozitářům.
 **Hlavní metody:**
 - `getActiveRepository()`: Získává aktivní repozitář
 
-### 10. GitIntegrationService
-
-Třída `GitIntegrationService` koordinuje Git funkcionalitu a integraci s API.
-
-**Klíčové funkce:**
-- Inicializuje všechny potřebné Git služby
-- Reaguje na commit události
-- Získává informace o commitech a odesílá je na server
-
-**Hlavní metody:**
-- `initialize()`: Inicializuje Git integraci a nastavuje naslouchání commit událostem
-- `dispose()`: Uvolní použité zdroje
-
-### 11. StatsReporter
+### 10. StatsReporter
 
 Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
 
@@ -187,7 +175,7 @@ Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o 
 - `stop()`: Zastaví pravidelné odesílání statistik
 - `reportStats()`: Získá a odešle statistiky, pokud došlo k uložení souboru
 
-### 12. SessionManager
+### 11. SessionManager
 
 Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při změně sessionId.
 
@@ -236,25 +224,26 @@ Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
 1. `GitHookInstaller` nainstaluje post-commit hook, který aktualizuje signální soubor `.git/.commit.done`
 2. `CommitEventListener` naslouchá změnám tohoto signálního souboru
 3. Při detekci commitu:
-   - `CommitEventService` vyvolá nastavený callback
-   - `GitIntegrationService` získá informace o commitu pomocí `CommitInfoService`
+   - `CommitTrackingService` zpracuje událost commitu
+   - Získá informace o commitu pomocí `CommitInfoService` a `GitRepositoryProvider`
    - Informace o commitu jsou odeslány na server pomocí `ApiClient`
 4. Server použije tyto informace pro vytvoření nového záznamu v Notion
 
 ## Architektura Git podpory
 
-Nová implementace Git podpory využívá zlepšenou architekturu:
+Implementace Git podpory využívá následující architekturu:
 
 1. **GitRepositoryProvider** - poskytuje přístup k Git repozitářům
 2. **CommitEventListener** - detekuje commit události pomocí signálního souboru
-3. **CommitEventService** - koordinuje detekci a zpracování commit událostí
+3. **GitHookInstaller** - instaluje potřebné Git hooky
 4. **CommitInfoService** - získává strukturované informace o commitech
-5. **GitIntegrationService** - koordinuje Git služby a integraci s API
+5. **CommitTrackingService** - koordinuje celý proces sledování commitů a integraci s API
 
 Tato architektura respektuje SOLID principy:
 - Každá třída má jednu jasně definovanou odpovědnost
 - Závislosti jsou jasně definované a předávané
 - Kód je lépe testovatelný a udržovatelný
+- `CommitTrackingService` funguje jako fasáda, která zjednodušuje použití Git funkcionalit
 
 ## Konfigurace
 

@@ -46,11 +46,11 @@ Rozšíření automaticky sleduje vaši aktivitu a sbírá tyto statistiky:
 
 Statistiky jsou periodicky odesílány na server, který je zahrnuje do popisků time logs v Notion.
 
-## 🔄 Git integrace
+## 🔄 Sledování commitů
 
-Rozšíření se integruje s Gitem:
-- Sleduje commity pomocí signálního mechanismu
-- Získává informace o commitech a repozitářích
+Rozšíření automaticky sleduje Git commity:
+- Používá efektivní signální mechanismus pro detekci commitů
+- Získává podrobné informace o každém commitu a repozitáři
 - Odesílá údaje na server pro vytvoření záznamů v Notion
 - Nenarušuje běžný workflow s Gitem
 

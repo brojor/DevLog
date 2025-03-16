@@ -1,6 +1,6 @@
 import type * as vscode from 'vscode'
 import { ApiClient } from './ApiClient'
-import { GitIntegrationService } from './GitIntegrationService'
+import { CommitTrackingService } from './CommitTrackingService'
 import { GitStashManager } from './GitStashManager'
 import { HeartbeatManager } from './HeartbeatManager'
 import { StatsReporter } from './StatsReporter'
@@ -20,8 +20,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Inicializace komponent
   apiClient = new ApiClient()
-  const gitIntegration = new GitIntegrationService(apiClient)
-  await gitIntegration.initialize()
+  const commitTracking = new CommitTrackingService(apiClient)
+  await commitTracking.initialize()
   gitStashManager = new GitStashManager()
 
   // Inicializace sledování stavu okna a heartbeatů
@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
     windowStateManager,
     heartbeatManager,
     statsReporter,
-    gitIntegration,
+    commitTracking,
   )
 }
 
