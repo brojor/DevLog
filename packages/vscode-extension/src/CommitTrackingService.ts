@@ -1,10 +1,10 @@
 import type { Disposable } from 'vscode'
 import type { ApiClient } from './ApiClient'
-import * as vscode from 'vscode'
 import { CommitEventListener } from './CommitEventListener'
 import { CommitInfoService } from './CommitInfoService'
 import { GitHookInstaller } from './GitHookInstaller'
 import { GitRepositoryProvider } from './GitRepositoryProvider'
+import { getWorkspacePath } from './utils/workspace'
 
 /**
  * Service for tracking Git commits and integrating with the DevLog backend.
@@ -24,7 +24,7 @@ export class CommitTrackingService implements Disposable {
     private readonly apiClient: ApiClient,
     rootPath?: string,
   ) {
-    const workspacePath = rootPath || this.getWorkspaceRootPath()
+    const workspacePath = rootPath || getWorkspacePath()
     if (!workspacePath) {
       throw new Error('No workspace path available')
     }
@@ -55,14 +55,6 @@ export class CommitTrackingService implements Disposable {
     catch (error) {
       throw new Error(`Failed to initialize commit tracking: ${error}`)
     }
-  }
-
-  /**
-   * Retrieves the root path of the workspace.
-   * @returns The root path of the workspace or undefined if not available.
-   */
-  private getWorkspaceRootPath(): string | undefined {
-    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
   }
 
   /**

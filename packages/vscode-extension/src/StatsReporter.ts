@@ -1,18 +1,21 @@
 import type { CodeStatsReport } from '@devlog/shared'
 import type { ApiClient } from './ApiClient'
-import type { GitStashManager } from './GitStashManager'
+import type { GitReferenceManager } from './GitReferenceManager'
 import { TIME_CONSTANTS } from '@devlog/shared'
 import * as vscode from 'vscode'
+import { CodeStatsGenerator } from './CodeStatsGenerator'
 
 export class StatsReporter implements vscode.Disposable {
   private lastReportTimestamp: number = 0
   private readonly disposables: vscode.Disposable[] = []
   private readonly debouncedReport: (() => void) & { cancel: () => void }
-
+  private readonly codeStatsGenerator: CodeStatsGenerator
   constructor(
-    private readonly gitStashManager: GitStashManager,
     private readonly apiClient: ApiClient,
+    private readonly gitReferenceManager: GitReferenceManager,
+    readonly workspacePath: string,
   ) {
+    this.codeStatsGenerator = new CodeStatsGenerator(workspacePath)
     this.debouncedReport = this.createDebouncedReport(TIME_CONSTANTS.CODE_STATS_REPORT_DEBOUNCE_MS)
     this.setupEventListeners()
   }
@@ -49,7 +52,13 @@ export class StatsReporter implements vscode.Disposable {
 
   private async reportStats(): Promise<void> {
     try {
-      const stats = await this.gitStashManager.getDiffStats()
+      const referenceHash = this.gitReferenceManager.referenceHash
+      if (!referenceHash) {
+        console.error('StatsReporter: No reference hash is available')
+        return
+      }
+
+      const stats = await this.codeStatsGenerator.generateStats(referenceHash)
       if (!stats) {
         console.log('StatsReporter: Nepodařilo se získat statistiky')
         return

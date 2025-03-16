@@ -1,21 +1,23 @@
 import type * as vscode from 'vscode'
 import type { ApiClient } from './ApiClient'
-import { GitStashManager } from './GitStashManager'
+import { GitReferenceManager } from './GitReferenceManager'
 import { StatsReporter } from './StatsReporter'
+import { getWorkspacePath } from './utils/workspace'
 
 /**
  * Služba pro sledování a reportování statistik změn v kódu
  */
 export class CodeStatsTrackingService implements vscode.Disposable {
-  private readonly gitStashManager: GitStashManager
+  private readonly gitReferenceManager: GitReferenceManager
   private readonly statsReporter: StatsReporter
   private disposables: vscode.Disposable[] = []
 
   constructor(private readonly apiClient: ApiClient) {
     console.log('CodeStatsTrackingService: Inicializace služby')
+    const workspacePath = getWorkspacePath()
 
-    this.gitStashManager = new GitStashManager()
-    this.statsReporter = new StatsReporter(this.gitStashManager, apiClient)
+    this.gitReferenceManager = new GitReferenceManager(workspacePath)
+    this.statsReporter = new StatsReporter(apiClient, this.gitReferenceManager, workspacePath)
     this.disposables.push(this.statsReporter)
 
     this.disposables.push(
@@ -30,14 +32,7 @@ export class CodeStatsTrackingService implements vscode.Disposable {
    */
   private async handleSessionChange(newSessionId: string): Promise<void> {
     console.log(`CodeStatsTrackingService: Změna sessionId na ${newSessionId}, vytvářím nový stash hash`)
-
-    const stashHash = await this.gitStashManager.createStashHash()
-    if (stashHash) {
-      console.log(`CodeStatsTrackingService: Vytvořen nový stash hash ${stashHash} pro sessionId ${newSessionId}`)
-    }
-    else {
-      console.warn(`CodeStatsTrackingService: Nepodařilo se vytvořit stash hash pro sessionId ${newSessionId}`)
-    }
+    await this.gitReferenceManager.createReferencePoint()
   }
 
   /**
