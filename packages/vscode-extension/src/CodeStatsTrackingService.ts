@@ -1,22 +1,21 @@
 import type * as vscode from 'vscode'
 import type { ApiClient } from './ApiClient'
-import type { GitStashManager } from './GitStashManager'
+import { GitStashManager } from './GitStashManager'
 import { StatsReporter } from './StatsReporter'
 
 /**
  * Služba pro sledování a reportování statistik změn v kódu
  */
 export class CodeStatsTrackingService implements vscode.Disposable {
-  private readonly disposables: vscode.Disposable[] = []
+  private readonly gitStashManager: GitStashManager
   private readonly statsReporter: StatsReporter
+  private disposables: vscode.Disposable[] = []
 
-  constructor(
-    private readonly apiClient: ApiClient,
-    private readonly gitStashManager: GitStashManager,
-  ) {
+  constructor(private readonly apiClient: ApiClient) {
     console.log('CodeStatsTrackingService: Inicializace služby')
 
-    this.statsReporter = new StatsReporter(this.gitStashManager, this.apiClient)
+    this.gitStashManager = new GitStashManager()
+    this.statsReporter = new StatsReporter(this.gitStashManager, apiClient)
     this.disposables.push(this.statsReporter)
 
     this.disposables.push(
@@ -58,5 +57,6 @@ export class CodeStatsTrackingService implements vscode.Disposable {
     for (const disposable of this.disposables) {
       disposable.dispose()
     }
+    this.disposables = []
   }
 }

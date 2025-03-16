@@ -1,5 +1,4 @@
 import type { WindowState } from '@devlog/shared'
-import type { ApiClient } from './ApiClient'
 import * as vscode from 'vscode'
 
 /**
@@ -8,9 +7,9 @@ import * as vscode from 'vscode'
 export class WindowStateManager implements vscode.Disposable {
   private windowState: WindowState
   private disposables: vscode.Disposable[] = []
-  private stateChangeCallback: ((state: WindowState) => void) | undefined
+  private readonly onStateChangeEmitter = new vscode.EventEmitter<WindowState>()
 
-  constructor(private apiClient: ApiClient) {
+  constructor() {
     this.windowState = {
       active: vscode.window.state.active,
       focused: vscode.window.state.focused,
@@ -18,17 +17,14 @@ export class WindowStateManager implements vscode.Disposable {
 
     this.disposables.push(
       vscode.window.onDidChangeWindowState(e => this.handleWindowStateChange(e)),
+      this.onStateChangeEmitter,
     )
-
-    this.sendWindowState()
   }
 
   /**
-   * Sets a callback that will be called on every window state change
+   * Event that fires when window state changes
    */
-  public onStateChange(callback: (state: WindowState) => void): void {
-    this.stateChangeCallback = callback
-  }
+  public readonly onStateChange = this.onStateChangeEmitter.event
 
   /**
    * Getter for the current window state
@@ -40,21 +36,9 @@ export class WindowStateManager implements vscode.Disposable {
   /**
    * Handles the change in window state
    */
-  private handleWindowStateChange(e: vscode.WindowState): void {
-    this.windowState = { active: e.active, focused: e.focused }
-
-    this.sendWindowState()
-
-    if (this.stateChangeCallback) {
-      this.stateChangeCallback(this.windowState)
-    }
-  }
-
-  /**
-   * Sends the current window state to the server
-   */
-  private sendWindowState(): void {
-    this.apiClient.sendWindowState({ windowState: this.windowState, timestamp: Date.now() })
+  private handleWindowStateChange({ active, focused }: vscode.WindowState): void {
+    this.windowState = { active, focused }
+    this.onStateChangeEmitter.fire(this.windowState)
   }
 
   dispose(): void {

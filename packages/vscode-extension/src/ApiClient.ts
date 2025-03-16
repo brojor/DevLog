@@ -4,9 +4,10 @@ import * as vscode from 'vscode'
 /**
  * Client for communication with the DevLog server
  */
-export class ApiClient {
+export class ApiClient implements vscode.Disposable {
   private readonly serverUrl: string
   public sessionId: string | null = null
+  private disposables: vscode.Disposable[] = []
 
   // Event emitter for notifying sessionId changes
   private readonly _onSessionChange = new vscode.EventEmitter<string>()
@@ -20,6 +21,9 @@ export class ApiClient {
     }
     this.serverUrl = configServerUrl
     console.log(`ApiClient: Initialized with server URL ${this.serverUrl}`)
+
+    // Přidáme EventEmitter do disposables
+    this.disposables.push(this._onSessionChange)
   }
 
   private isValidUrl(url: string): boolean {
@@ -51,7 +55,6 @@ export class ApiClient {
         throw new Error(`Server responded with error: ${response.status} ${response.statusText}`)
       }
 
-      // return await this.processResponse(response, 'Heartbeat')
       const { sessionId } = await response.json() as HeartbeatResponse
 
       // If sessionId has changed, update it and emit an event
@@ -144,5 +147,13 @@ export class ApiClient {
       console.error('Chyba při komunikaci se serverem:', error)
       throw error
     }
+  }
+
+  dispose(): void {
+    for (const disposable of this.disposables) {
+      disposable.dispose()
+    }
+    this.disposables = []
+    console.log('ApiClient: Disposed')
   }
 }
