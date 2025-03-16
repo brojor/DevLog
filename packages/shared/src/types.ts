@@ -15,6 +15,10 @@ export interface CodeStats {
   linesRemoved: number
 }
 
+export interface CodeStatsReport extends CodeStats {
+  timestamp: number
+}
+
 export interface CommitInfo {
   message: string
   timestamp: number

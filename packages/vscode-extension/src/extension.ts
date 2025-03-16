@@ -1,82 +1,96 @@
-import type * as vscode from 'vscode'
+import * as vscode from 'vscode'
 import { ApiClient } from './ApiClient'
+import { CodeStatsTrackingService } from './CodeStatsTrackingService'
 import { CommitTrackingService } from './CommitTrackingService'
 import { GitStashManager } from './GitStashManager'
 import { HeartbeatManager } from './HeartbeatManager'
-import { StatsReporter } from './StatsReporter'
 import { WindowStateManager } from './WindowStateManager'
 
 let apiClient: ApiClient | undefined
 let gitStashManager: GitStashManager | undefined
 let windowStateManager: WindowStateManager | undefined
 let heartbeatManager: HeartbeatManager | undefined
-let statsReporter: StatsReporter | undefined
+let codeStatsTracking: CodeStatsTrackingService | undefined
 
 /**
  * Tato metoda je volána při aktivaci rozšíření
  */
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Toggl Auto Tracker rozšíření bylo aktivováno!')
+  console.log('DevLog rozšíření bylo aktivováno!')
 
-  // Inicializace komponent
-  apiClient = new ApiClient()
-  const commitTracking = new CommitTrackingService(apiClient)
-  await commitTracking.initialize()
-  gitStashManager = new GitStashManager()
+  try {
+    // Inicializace základních komponent
+    apiClient = new ApiClient()
+    gitStashManager = new GitStashManager()
 
-  // Inicializace sledování stavu okna a heartbeatů
-  windowStateManager = new WindowStateManager(apiClient)
-  heartbeatManager = new HeartbeatManager(apiClient)
+    // Inicializace sledování commitů
+    const commitTracking = new CommitTrackingService(apiClient)
+    await commitTracking.initialize()
 
-  // Propojení WindowStateManager a HeartbeatManager
-  windowStateManager.onStateChange((state) => {
-    // Povolit heartbeaty, pokud je okno aktivní a má focus
-    heartbeatManager?.setEnabled(state.active && state.focused)
-  })
+    // Inicializace sledování stavu okna a heartbeatů
+    windowStateManager = new WindowStateManager(apiClient)
+    heartbeatManager = new HeartbeatManager(apiClient)
 
-  // Inicializovat HeartbeatManager s aktuálním stavem okna
-  const initialState = windowStateManager.state
-  heartbeatManager.setEnabled(initialState.active && initialState.focused)
+    // Propojení WindowStateManager a HeartbeatManager
+    windowStateManager.onStateChange((state) => {
+      // Povolit heartbeaty, pokud je okno aktivní a má focus
+      heartbeatManager?.setEnabled(state.active && state.focused)
+    })
 
-  // Inicializace a spuštění reporteru statistik
-  statsReporter = new StatsReporter(gitStashManager, apiClient)
-  statsReporter.start()
+    // Inicializovat HeartbeatManager s aktuálním stavem okna
+    const initialState = windowStateManager.state
+    heartbeatManager.setEnabled(initialState.active && initialState.focused)
 
-  // Přidáme komponenty do subscriptions
-  context.subscriptions.push(
-    windowStateManager,
-    heartbeatManager,
-    statsReporter,
-    commitTracking,
-  )
+    // Inicializace služby pro sledování statistik kódu
+    codeStatsTracking = new CodeStatsTrackingService(apiClient, gitStashManager)
+
+    // Přidáme komponenty do subscriptions pro správné uvolnění zdrojů
+    context.subscriptions.push(
+      windowStateManager,
+      heartbeatManager,
+      codeStatsTracking,
+      commitTracking,
+    )
+    console.log('DevLog rozšíření bylo úspěšně inicializováno')
+  }
+  catch (error) {
+    console.error('Chyba při inicializaci DevLog rozšíření:', error)
+    vscode.window.showErrorMessage(`Chyba při inicializaci DevLog: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
 
 /**
  * Tato metoda je volána při deaktivaci rozšíření
  */
 export function deactivate() {
-  if (windowStateManager) {
-    windowStateManager.dispose()
-    windowStateManager = undefined
-  }
+  try {
+    // Uvolnění zdrojů
+    if (windowStateManager) {
+      windowStateManager.dispose()
+      windowStateManager = undefined
+    }
 
-  if (heartbeatManager) {
-    heartbeatManager.dispose()
-    heartbeatManager = undefined
-  }
+    if (heartbeatManager) {
+      heartbeatManager.dispose()
+      heartbeatManager = undefined
+    }
 
-  if (statsReporter) {
-    statsReporter.dispose()
-    statsReporter = undefined
-  }
+    if (codeStatsTracking) {
+      codeStatsTracking.dispose()
+      codeStatsTracking = undefined
+    }
 
-  if (gitStashManager) {
-    gitStashManager = undefined
-  }
+    if (gitStashManager) {
+      gitStashManager = undefined
+    }
 
-  if (apiClient) {
-    apiClient = undefined
-  }
+    if (apiClient) {
+      apiClient = undefined
+    }
 
-  console.log('Toggl Auto Tracker rozšíření bylo deaktivováno.')
+    console.log('DevLog rozšíření bylo úspěšně deaktivováno')
+  }
+  catch (error) {
+    console.error('Chyba při deaktivaci DevLog rozšíření:', error)
+  }
 }

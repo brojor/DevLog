@@ -19,8 +19,8 @@ packages/vscode-extension/
 │   ├── CommitTrackingService.ts # Služba pro sledování a zpracování commit událostí
 │   ├── CommitInfoService.ts     # Služba pro získávání informací o commitech
 │   ├── GitRepositoryProvider.ts # Poskytovatel přístupu k Git repozitářům
-│   ├── StatsReporter.ts         # Třída pro pravidelné odesílání statistik
-│   ├── SessionManager.ts        # Třída pro správu sessions
+│   ├── StatsReporter.ts         # Třída pro reportování statistik kódu
+│   ├── CodeStatsTrackingService.ts # Služba pro sledování a správu statistik kódu
 │   └── types/                   # TypeScript definice a typy
 ├── .vscodeignore               # Soubory ignorované při publikování
 ├── package.json                # Metadata a konfigurace rozšíření
@@ -161,31 +161,33 @@ Třída `GitRepositoryProvider` poskytuje přístup k Git repozitářům.
 
 ### 10. StatsReporter
 
-Třída `StatsReporter` je zodpovědná za pravidelné odesílání statistik o změnách v kódu.
+Třída `StatsReporter` je zodpovědná za získávání a odesílání statistik o změnách v kódu.
 
 **Klíčové funkce:**
-- Implementuje periodické odesílání statistik pomocí `setInterval`
-- Sleduje události uložení souborů (`onDidSaveTextDocument`)
-- Odesílá statistiky pouze když došlo k uložení souboru od posledního odeslání
+- Používá debouncing mechanismus pro optimalizaci odesílání statistik
+- Sleduje události uložení souborů a smazání souborů
+- Získává statistiky pouze při významných změnách
 - Využívá `GitStashManager` pro získání aktuálních statistik
 - Využívá `ApiClient` pro odeslání statistik na server
 
 **Hlavní metody:**
-- `start()`: Spustí pravidelné odesílání statistik
-- `stop()`: Zastaví pravidelné odesílání statistik
-- `reportStats()`: Získá a odešle statistiky, pokud došlo k uložení souboru
+- `forceReportStats()`: Vynutí okamžité odeslání statistik
+- `reportStats()`: Získá a odešle statistiky kódu
+- `dispose()`: Uvolní použité zdroje
 
-### 11. SessionManager
+### 11. CodeStatsTrackingService
 
-Třída `SessionManager` je zodpovědná za správu sessions, včetně vytváření nových sessions při změně sessionId.
+Třída `CodeStatsTrackingService` je zodpovědná za koordinaci sledování statistik kódu.
 
 **Klíčové funkce:**
-- Reaguje na změny sessionId z API
+- Spravuje `StatsReporter`
+- Reaguje na změny sessionId z `ApiClient`
 - Koordinuje vytváření nových Git stash hashů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
 
 **Hlavní metody:**
-- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID
+- `forceReportStats(reason?)`: Vynutí okamžité odeslání statistik s volitelným důvodem pro log
+- `handleSessionChange(newSessionId)`: Zpracovává změnu session ID, vytváří nový stash hash
 - `dispose()`: Uvolní použité zdroje
 
 ## Hlavní funkcionalita
@@ -210,11 +212,9 @@ Rozšíření monitoruje stav okna VS Code, což umožňuje:
 
 Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním způsobem:
 1. Při inicializaci vytvoří referenční bod pomocí Git stash hashe
-2. Nastaví pravidelný interval pro potenciální odeslání statistik
-3. Sleduje události uložení souborů a nastavuje příznak při každém uložení
-4. Statistiky skutečně získává a odesílá pouze když:
-   - Uplynul nastavený interval
-   - Od posledního odeslání byl uložen alespoň jeden soubor
+2. Používá debouncing mechanismus pro sledování změn v kódu
+3. Reaguje na události uložení a smazání souborů
+4. Po uplynutí debouncing intervalu získává a odesílá statistiky o změnách
 5. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
 6. Server používá tyto statistiky k obohacení popisků time logs v Notion
 
@@ -229,21 +229,24 @@ Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
    - Informace o commitu jsou odeslány na server pomocí `ApiClient`
 4. Server použije tyto informace pro vytvoření nového záznamu v Notion
 
-## Architektura Git podpory
+## Architektura
 
-Implementace Git podpory využívá následující architekturu:
+Rozšíření používá modulární architekturu s jasně oddělenými zodpovědnostmi:
 
-1. **GitRepositoryProvider** - poskytuje přístup k Git repozitářům
-2. **CommitEventListener** - detekuje commit události pomocí signálního souboru
-3. **GitHookInstaller** - instaluje potřebné Git hooky
-4. **CommitInfoService** - získává strukturované informace o commitech
-5. **CommitTrackingService** - koordinuje celý proces sledování commitů a integraci s API
+1. **Hlavní služby**:
+   - `CommitTrackingService` - zodpovědná za sledování Git commitů
+   - `CodeStatsTrackingService` - zodpovědná za sledování a reportování statistik kódu
+   - Třetí služba pro sledování aktivity uživatele (HeartbeatManager + WindowStateManager)
 
-Tato architektura respektuje SOLID principy:
-- Každá třída má jednu jasně definovanou odpovědnost
-- Závislosti jsou jasně definované a předávané
-- Kód je lépe testovatelný a udržovatelný
-- `CommitTrackingService` funguje jako fasáda, která zjednodušuje použití Git funkcionalit
+2. **Závislosti**:
+   - `ApiClient` - centrální bod pro komunikaci se serverem
+   - `GitStashManager` - poskytuje přístup k Git statistikám
+   - Další podpůrné třídy pro specifické funkce
+
+3. **Tok událostí**:
+   - VS Code události (uložení souboru, smazání souboru) -> debouncing -> reportování statistik
+   - Změny stavu okna VS Code -> změna stavu HeartbeatManager
+   - Git commit -> detekce přes hook -> odeslání informací na server
 
 ## Konfigurace
 
@@ -268,6 +271,9 @@ export const TIME_CONSTANTS = {
 
   // Timeout pro detekci neaktivity uživatele v milisekundách (2 minuty)
   INACTIVITY_TIMEOUT_MS: 2 * 60 * 1000,
+
+  // Interval pro debouncing odesílání statistik kódu v milisekundách (15 sekund)
+  CODE_STATS_REPORT_DEBOUNCE_MS: 15 * 1000,
 }
 ```
 

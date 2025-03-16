@@ -1,77 +1,83 @@
+import type { CodeStatsReport } from '@devlog/shared'
 import type { ApiClient } from './ApiClient'
 import type { GitStashManager } from './GitStashManager'
+import { TIME_CONSTANTS } from '@devlog/shared'
 import * as vscode from 'vscode'
 
 export class StatsReporter implements vscode.Disposable {
-  private readonly interval: number = 60000 // Odesílat každou minutu
-  private intervalId?: NodeJS.Timeout
-  private fileWasSaved: boolean = false
-  private disposables: vscode.Disposable[] = []
+  private lastReportTimestamp: number = 0
+  private readonly disposables: vscode.Disposable[] = []
+  private readonly debouncedReport: (() => void) & { cancel: () => void }
 
   constructor(
     private readonly gitStashManager: GitStashManager,
     private readonly apiClient: ApiClient,
   ) {
-    // Registrace posluchače události uložení souboru
+    this.debouncedReport = this.createDebouncedReport(TIME_CONSTANTS.CODE_STATS_REPORT_DEBOUNCE_MS)
+    this.setupEventListeners()
+  }
+
+  private setupEventListeners(): void {
     this.disposables.push(
-      vscode.workspace.onDidSaveTextDocument(() => {
-        this.fileWasSaved = true
-        console.log('StatsReporter: Detekováno uložení souboru, statistiky budou odeslány při příštím intervalu')
-      }),
+      vscode.workspace.onDidSaveTextDocument(() => this.debouncedReport()),
+      vscode.workspace.onDidDeleteFiles(() => this.debouncedReport()),
     )
   }
 
-  /**
-   * Spustí pravidelné odesílání statistik
-   */
-  public start(): void {
-    console.log('StatsReporter: Spouštím pravidelné odesílání statistik')
-    this.intervalId = setInterval(() => void this.reportStats(), this.interval)
-  }
+  private createDebouncedReport(delay: number): (() => void) & { cancel: () => void } {
+    let timeoutId: NodeJS.Timeout | undefined
 
-  /**
-   * Zastaví pravidelné odesílání statistik
-   */
-  public dispose(): void {
-    console.log('StatsReporter: Zastavuji pravidelné odesílání statistik')
-    if (this.intervalId) {
-      clearInterval(this.intervalId)
-      this.intervalId = undefined
+    const debouncedFn = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      const reportStats = () => {
+        void this.reportStats()
+      }
+      timeoutId = setTimeout(reportStats, delay)
     }
 
-    // Uvolnění posluchačů událostí
-    for (const disposable of this.disposables)
-      disposable.dispose()
+    debouncedFn.cancel = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = undefined
+      }
+    }
 
-    this.disposables = []
+    return debouncedFn
   }
 
-  /**
-   * Získá a odešle statistiky, pokud je uživatel aktivní
-   */
   private async reportStats(): Promise<void> {
     try {
-      // Kontrola, zda byl soubor uložen od posledního odeslání statistik
-      if (!this.fileWasSaved) {
-        console.log('StatsReporter: Od posledního odeslání nebyl uložen žádný soubor, přeskakuji odeslání statistik')
-        return
-      }
-
-      // Získání statistik
       const stats = await this.gitStashManager.getDiffStats()
       if (!stats) {
         console.log('StatsReporter: Nepodařilo se získat statistiky')
         return
       }
 
-      // Odeslání statistik
-      await this.apiClient.sendStats(stats)
+      const report: CodeStatsReport = {
+        ...stats,
+        timestamp: Date.now(),
+      }
 
-      // Resetování příznaku uložení souboru po úspěšném odeslání
-      this.fileWasSaved = false
+      await this.apiClient.sendStats(report)
+      this.lastReportTimestamp = report.timestamp
+
+      console.log(`StatsReporter: Statistiky úspěšně odeslány (${report.filesChanged} souborů, +${report.linesAdded}/-${report.linesRemoved} řádků)`)
     }
     catch (error) {
-      console.error('StatsReporter: Chyba při odesílání statistik:', error)
+      console.error('StatsReporter: Chyba při zpracování statistik:', error)
+    }
+  }
+
+  public async forceReportStats(): Promise<void> {
+    await this.reportStats()
+  }
+
+  public dispose(): void {
+    this.debouncedReport.cancel()
+    for (const disposable of this.disposables) {
+      disposable.dispose()
     }
   }
 }

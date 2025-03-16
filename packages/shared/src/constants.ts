@@ -6,4 +6,7 @@ export const TIME_CONSTANTS = {
 
   // Timeout for detecting user inactivity in milliseconds (2 minutes)
   INACTIVITY_TIMEOUT_MS: 2 * 60 * 1000,
+
+  // Interval for debouncing code stats reporting in milliseconds (15 seconds)
+  CODE_STATS_REPORT_DEBOUNCE_MS: 15 * 1000,
 }

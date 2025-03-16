@@ -1,4 +1,4 @@
-import type { CodeStats, CommitInfo, Heartbeat, HeartbeatResponse, WindowStateEvent } from '@devlog/shared'
+import type { CodeStatsReport, CommitInfo, Heartbeat, HeartbeatResponse, WindowStateEvent } from '@devlog/shared'
 import * as vscode from 'vscode'
 
 /**
@@ -72,7 +72,7 @@ export class ApiClient {
   /**
    * Sends code statistics to the server
    */
-  public async sendStats(stats: CodeStats): Promise<void> {
+  public async sendStats(stats: CodeStatsReport): Promise<void> {
     try {
       console.log('ApiClient: Sending statistics to server', stats)
 
