@@ -42,7 +42,7 @@ router.post('/stats', async (req: Request, res: Response) => {
 
     await timeTrackingService.processCodeStats(codeStats)
 
-    return res.status(200)
+    return res.status(200).end()
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
@@ -65,7 +65,7 @@ router.post('/commit', async (req: Request, res: Response) => {
 
     await timeTrackingService.processCommit(commitInfo)
 
-    return res.status(201)
+    return res.status(201).end()
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
@@ -88,7 +88,7 @@ router.post('/ide/window-state', async (req: Request, res: Response) => {
 
     timeTrackingService.processWindowState(windowStateEvent)
 
-    return res.status(200)
+    return res.status(200).end()
   }
   catch (error) {
     if (error instanceof errors.E_VALIDATION_ERROR) {
