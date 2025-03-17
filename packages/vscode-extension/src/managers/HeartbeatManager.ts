@@ -34,6 +34,7 @@ export class HeartbeatManager implements vscode.Disposable {
     }
 
     if (this.isEnabled) {
+      this.sendHeartbeat()
       this.heartbeatInterval = setInterval(() => {
         this.sendHeartbeat()
       }, TIME_CONSTANTS.IDE_HEARTBEAT_INTERVAL_MS)
