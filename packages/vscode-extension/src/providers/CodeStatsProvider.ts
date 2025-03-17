@@ -1,10 +1,10 @@
 import type { CodeStats } from '@devlog/shared'
-import { runCommand } from './utils/shell'
+import { runCommand } from '../utils/shell'
 
 /**
  * Class for generating code statistics based on the provided reference point
  */
-export class CodeStatsGenerator {
+export class CodeStatsProvider {
   /**
    * @param workspacePath Path to the git repository workspace
    * @param excludedFiles Optional array of files to exclude from statistics
@@ -21,7 +21,7 @@ export class CodeStatsGenerator {
    */
   async generateStats(referenceHash: string): Promise<CodeStats | null> {
     if (!referenceHash) {
-      console.error('CodeStatsGenerator: No reference hash is provided')
+      console.error('CodeStatsProvider: No reference hash is provided')
       return null
     }
 
@@ -36,7 +36,7 @@ export class CodeStatsGenerator {
       return this.parseGitDiffShortstat(output)
     }
     catch (error) {
-      console.error('CodeStatsGenerator: Error generating statistics:', error)
+      console.error('CodeStatsProvider: Error generating statistics:', error)
       return null
     }
   }

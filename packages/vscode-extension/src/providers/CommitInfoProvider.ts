@@ -1,11 +1,11 @@
 import type { CommitInfo } from '@devlog/shared'
-import type { RepoDetails } from './types'
-import type { Repository } from './types/git'
+import type { RepoDetails } from '../types'
+import type { Repository } from '../types/git'
 
 /**
  * Service for retrieving commit information
  */
-export class CommitInfoService {
+export class CommitInfoProvider {
   /**
    * Get information about a commit (defaults to HEAD if no hash provided)
    */
@@ -18,7 +18,7 @@ export class CommitInfoService {
       if (!commitHash) {
         commitHash = repository.state.HEAD?.commit
         if (!commitHash) {
-          console.log('CommitInfoService: No commit hash available')
+          console.log('CommitInfoProvider: No commit hash available')
           return undefined
         }
       }
@@ -26,7 +26,7 @@ export class CommitInfoService {
       // Get commit details
       const commitDetails = await repository.getCommit(commitHash)
       if (!commitDetails) {
-        console.log('CommitInfoService: Failed to get commit details')
+        console.log('CommitInfoProvider: Failed to get commit details')
         return undefined
       }
 
@@ -43,7 +43,7 @@ export class CommitInfoService {
       }
     }
     catch (error) {
-      console.error('CommitInfoService: Error getting commit info:', error)
+      console.error('CommitInfoProvider: Error getting commit info:', error)
       return undefined
     }
   }
@@ -51,7 +51,7 @@ export class CommitInfoService {
   private getRepositoryInfo(repository: Repository): RepoDetails | undefined {
     const remote = this.getPreferredRemote(repository)
     if (!remote?.fetchUrl && !remote?.pushUrl) {
-      console.log('CommitInfoService: No valid remote URL found')
+      console.log('CommitInfoProvider: No valid remote URL found')
       return undefined
     }
 
@@ -74,7 +74,7 @@ export class CommitInfoService {
     const match = remoteUrl.match(regex)
 
     if (!match) {
-      console.log('CommitInfoService: Invalid repository URL format:', remoteUrl)
+      console.log('CommitInfoProvider: Invalid repository URL format:', remoteUrl)
       return undefined
     }
 

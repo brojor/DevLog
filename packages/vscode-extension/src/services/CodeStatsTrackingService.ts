@@ -1,15 +1,15 @@
 import type * as vscode from 'vscode'
-import type { ApiClient } from './ApiClient'
-import { GitReferenceManager } from './GitReferenceManager'
-import { StatsReporter } from './StatsReporter'
-import { getWorkspacePath } from './utils/workspace'
+import type { ApiClient } from '../api/ApiClient'
+import { CodeStatsManager } from '../managers/CodeStatsManager'
+import { GitReferenceManager } from '../managers/GitReferenceManager'
+import { getWorkspacePath } from '../utils/workspace'
 
 /**
  * Služba pro sledování a reportování statistik změn v kódu
  */
 export class CodeStatsTrackingService implements vscode.Disposable {
   private readonly gitReferenceManager: GitReferenceManager
-  private readonly statsReporter: StatsReporter
+  private readonly codeStatsManager: CodeStatsManager
   private disposables: vscode.Disposable[] = []
 
   constructor(private readonly apiClient: ApiClient) {
@@ -17,8 +17,8 @@ export class CodeStatsTrackingService implements vscode.Disposable {
     const workspacePath = getWorkspacePath()
 
     this.gitReferenceManager = new GitReferenceManager(workspacePath)
-    this.statsReporter = new StatsReporter(apiClient, this.gitReferenceManager, workspacePath)
-    this.disposables.push(this.statsReporter)
+    this.codeStatsManager = new CodeStatsManager(apiClient, this.gitReferenceManager, workspacePath)
+    this.disposables.push(this.codeStatsManager)
 
     this.disposables.push(
       this.apiClient.onSessionChange(async (newSessionId: string) => {
@@ -41,7 +41,7 @@ export class CodeStatsTrackingService implements vscode.Disposable {
    */
   public async forceReportStats(reason?: string): Promise<void> {
     console.log(`CodeStatsTrackingService: Vynucené odeslání statistik${reason ? ` (důvod: ${reason})` : ''}`)
-    await this.statsReporter.forceReportStats()
+    await this.codeStatsManager.forceReportStats()
   }
 
   /**

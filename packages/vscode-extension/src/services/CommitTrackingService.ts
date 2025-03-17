@@ -1,17 +1,17 @@
 import type { Disposable } from 'vscode'
-import type { ApiClient } from './ApiClient'
-import { CommitEventListener } from './CommitEventListener'
-import { CommitInfoService } from './CommitInfoService'
-import { GitHookInstaller } from './GitHookInstaller'
-import { GitRepositoryProvider } from './GitRepositoryProvider'
-import { getWorkspacePath } from './utils/workspace'
+import type { ApiClient } from '../api/ApiClient'
+import { GitHookInstaller } from '../installers/GitHookInstaller'
+import { CommitEventListener } from '../listeners/CommitEventListener'
+import { CommitInfoProvider } from '../providers/CommitInfoProvider'
+import { GitRepositoryProvider } from '../providers/GitRepositoryProvider'
+import { getWorkspacePath } from '../utils/workspace'
 
 /**
  * Service for tracking Git commits and integrating with the DevLog backend.
  */
 export class CommitTrackingService implements Disposable {
   private readonly repositoryProvider: GitRepositoryProvider
-  private readonly commitInfoService: CommitInfoService
+  private readonly commitInfoProvider: CommitInfoProvider
   private readonly gitHookInstaller: GitHookInstaller
   private readonly commitEventListener: CommitEventListener
 
@@ -31,7 +31,7 @@ export class CommitTrackingService implements Disposable {
 
     try {
       this.repositoryProvider = new GitRepositoryProvider()
-      this.commitInfoService = new CommitInfoService()
+      this.commitInfoProvider = new CommitInfoProvider()
       this.gitHookInstaller = new GitHookInstaller(workspacePath)
       this.commitEventListener = new CommitEventListener(
         workspacePath,
@@ -68,7 +68,7 @@ export class CommitTrackingService implements Disposable {
       return
     }
 
-    const commitInfo = await this.commitInfoService.getCommitInfo(repository)
+    const commitInfo = await this.commitInfoProvider.getCommitInfo(repository)
     if (!commitInfo) {
       console.error('Failed to get commit info')
       return

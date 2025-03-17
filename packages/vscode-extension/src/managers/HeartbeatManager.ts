@@ -1,6 +1,6 @@
 import type { Heartbeat } from '@devlog/shared'
 import type * as vscode from 'vscode'
-import type { ApiClient } from './ApiClient'
+import type { ApiClient } from '../api/ApiClient'
 import { HeartbeatSource, TIME_CONSTANTS } from '@devlog/shared'
 
 /**

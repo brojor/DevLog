@@ -1,21 +1,21 @@
 import type { CodeStatsReport } from '@devlog/shared'
-import type { ApiClient } from './ApiClient'
+import type { ApiClient } from '../api/ApiClient'
 import type { GitReferenceManager } from './GitReferenceManager'
 import { TIME_CONSTANTS } from '@devlog/shared'
 import * as vscode from 'vscode'
-import { CodeStatsGenerator } from './CodeStatsGenerator'
+import { CodeStatsProvider } from '../providers/CodeStatsProvider'
 
-export class StatsReporter implements vscode.Disposable {
+export class CodeStatsManager implements vscode.Disposable {
   private lastReportTimestamp: number = 0
   private readonly disposables: vscode.Disposable[] = []
   private readonly debouncedReport: (() => void) & { cancel: () => void }
-  private readonly codeStatsGenerator: CodeStatsGenerator
+  private readonly codeStatsProvider: CodeStatsProvider
   constructor(
     private readonly apiClient: ApiClient,
     private readonly gitReferenceManager: GitReferenceManager,
     readonly workspacePath: string,
   ) {
-    this.codeStatsGenerator = new CodeStatsGenerator(workspacePath)
+    this.codeStatsProvider = new CodeStatsProvider(workspacePath)
     this.debouncedReport = this.createDebouncedReport(TIME_CONSTANTS.CODE_STATS_REPORT_DEBOUNCE_MS)
     this.setupEventListeners()
   }
@@ -54,13 +54,13 @@ export class StatsReporter implements vscode.Disposable {
     try {
       const referenceHash = this.gitReferenceManager.referenceHash
       if (!referenceHash) {
-        console.error('StatsReporter: No reference hash is available')
+        console.error('CodeStatsManager: No reference hash is available')
         return
       }
 
-      const stats = await this.codeStatsGenerator.generateStats(referenceHash)
+      const stats = await this.codeStatsProvider.generateStats(referenceHash)
       if (!stats) {
-        console.log('StatsReporter: Nepodařilo se získat statistiky')
+        console.log('CodeStatsManager: Nepodařilo se získat statistiky')
         return
       }
 
@@ -72,10 +72,10 @@ export class StatsReporter implements vscode.Disposable {
       await this.apiClient.sendStats(report)
       this.lastReportTimestamp = report.timestamp
 
-      console.log(`StatsReporter: Statistiky úspěšně odeslány (${report.filesChanged} souborů, +${report.linesAdded}/-${report.linesRemoved} řádků)`)
+      console.log(`CodeStatsManager: Statistiky úspěšně odeslány (${report.filesChanged} souborů, +${report.linesAdded}/-${report.linesRemoved} řádků)`)
     }
     catch (error) {
-      console.error('StatsReporter: Chyba při zpracování statistik:', error)
+      console.error('CodeStatsManager: Chyba při zpracování statistik:', error)
     }
   }
 

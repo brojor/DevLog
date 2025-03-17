@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
-import { ActivityTrackingService } from './ActivityTrackingService'
-import { ApiClient } from './ApiClient'
-import { CodeStatsTrackingService } from './CodeStatsTrackingService'
-import { CommitTrackingService } from './CommitTrackingService'
+import { ApiClient } from './api/ApiClient'
+import { ActivityTrackingService } from './services/ActivityTrackingService'
+import { CodeStatsTrackingService } from './services/CodeStatsTrackingService'
+import { CommitTrackingService } from './services/CommitTrackingService'
 
 /**
  * Tato metoda je volána při aktivaci rozšíření

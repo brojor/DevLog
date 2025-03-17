@@ -1,4 +1,4 @@
-import { runCommand } from './utils/shell'
+import { runCommand } from '../utils/shell'
 
 /**
  * Class for managing Git reference points

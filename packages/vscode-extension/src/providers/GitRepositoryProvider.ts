@@ -1,4 +1,4 @@
-import type { API, GitExtension, Repository } from './types/git'
+import type { API, GitExtension, Repository } from '../types/git'
 import * as vscode from 'vscode'
 
 /**

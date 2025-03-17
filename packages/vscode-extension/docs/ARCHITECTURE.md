@@ -8,29 +8,40 @@ VS Code rozšíření je klíčovou součástí DevLog systému, které sleduje 
 
 ```
 packages/vscode-extension/
-├── src/
-│   ├── extension.ts               # Hlavní vstupní bod rozšíření
-│   ├── ApiClient.ts               # Třída pro komunikaci se serverem
-│   ├── ActivityTrackingService.ts # Služba pro sledování aktivity v VS Code
-│   ├── HeartbeatManager.ts        # Třída pro správu pravidelných heartbeatů
-│   ├── WindowStateManager.ts      # Třída pro sledování stavu okna VS Code
-│   ├── GitReferenceManager.ts     # Třída pro správu Git referenčních bodů
-│   ├── CodeStatsGenerator.ts      # Třída pro generování statistik o změnách v kódu
-│   ├── GitHookInstaller.ts        # Třída pro instalaci Git hooků
-│   ├── CommitEventListener.ts     # Třída pro naslouchání commit událostem
-│   ├── CommitTrackingService.ts   # Služba pro sledování a zpracování commit událostí
-│   ├── CommitInfoService.ts       # Služba pro získávání informací o commitech
-│   ├── GitRepositoryProvider.ts   # Poskytovatel přístupu k Git repozitářům
-│   ├── StatsReporter.ts           # Třída pro reportování statistik kódu
-│   ├── CodeStatsTrackingService.ts # Služba pro sledování a správu statistik kódu
-│   ├── utils/
-│   │   ├── shell.ts               # Utility pro práci s shell příkazy
-│   │   └── workspace.ts           # Utility pro práci s VS Code workspace
-│   └── types/                     # TypeScript definice a typy
-├── .vscodeignore                  # Soubory ignorované při publikování
-├── package.json                   # Metadata a konfigurace rozšíření
-├── tsconfig.json                  # Konfigurace TypeScript
-└── vite.config.ts                 # Konfigurace Vite pro build
+├── docs
+│   └── ARCHITECTURE.md                          # Detailní popis architektury rozšíření
+├── src                                          # Zdrojový kód rozšíření
+│   ├── api                                      # Komunikace s externími službami
+│   │   └── ApiClient.ts                         # Centrální třída pro komunikaci se serverem
+│   ├── installers                               # Komponenty pro instalaci a setup
+│   │   └── GitHookInstaller.ts                  # Instalace a správa Git hooks
+│   ├── listeners                                # Komponenty reagující na události
+│   │   └── CommitEventListener.ts               # Naslouchá Git commit událostem
+│   ├── managers                                 # Správci jednotlivých funkcí a zdrojů
+│   │   ├── CodeStatsManager.ts                  # Správa odesílání statistik kódu
+│   │   ├── GitReferenceManager.ts               # Správa referenčních bodů v Git
+│   │   ├── HeartbeatManager.ts                  # Správa odesílání heartbeatů
+│   │   └── WindowStateManager.ts                # Sledování stavu okna VS Code
+│   ├── providers                                # Poskytovatelé dat a informací
+│   │   ├── CodeStatsProvider.ts                 # Generuje statistiky o změnách v kódu
+│   │   ├── CommitInfoProvider.ts                # Poskytuje informace o commitech
+│   │   └── GitRepositoryProvider.ts             # Přístup k Git repozitářům
+│   ├── services                                 # Vysokoúrovňové koordinační služby
+│   │   ├── ActivityTrackingService.ts           # Sledování aktivity uživatele
+│   │   ├── CodeStatsTrackingService.ts          # Koordinace sledování statistik
+│   │   └── CommitTrackingService.ts             # Koordinace sledování commitů
+│   ├── types                                    # TypeScript definice a typy
+│   │   ├── git.d.ts                             # TypeScript definice pro Git
+│   │   └── index.ts                             # Centrální export všech typů
+│   ├── utils                                    # Pomocné utility a nástroje
+│   │   ├── shell.ts                             # Utility pro práci s příkazy shellu
+│   │   └── workspace.ts                         # Utility pro práci s VS Code workspace
+│   └── extension.ts                             # Vstupní bod rozšíření, registrace funkcí
+├── LICENSE.md                                   # Licenční informace projektu
+├── package.json                                 # Konfigurace projektu, závislosti a skripty
+├── README.md                                    # Hlavní dokumentace a popis projektu
+├── tsconfig.json                                # Konfigurace TypeScript
+└── vite.config.ts                               # Konfigurace Vite pro build
 ```
 
 ## Klíčové komponenty
@@ -112,7 +123,7 @@ Třída `HeartbeatManager` je zodpovědná za pravidelné odesílání heartbeat
 Třída `CodeStatsTrackingService` je zodpovědná za koordinaci sledování statistik kódu.
 
 **Klíčové funkce:**
-- Vytváří a spravuje `GitReferenceManager` a `StatsReporter`
+- Vytváří a spravuje `GitReferenceManager` a `CodeStatsManager`
 - Reaguje na změny sessionId z `ApiClient`
 - Koordinuje vytváření nových Git referenčních bodů
 - Implementuje rozhraní `Disposable` pro správné uvolnění zdrojů
@@ -135,12 +146,12 @@ Třída `GitReferenceManager` je zodpovědná za vytváření a správu Git refe
 - `createReferencePoint()`: Vytváří nový referenční bod bez ovlivnění pracovního adresáře
 - `referenceHash` (getter): Poskytuje přístup k aktuálnímu referenčnímu hashi
 
-### 7. CodeStatsGenerator
+### 7. CodeStatsProvider
 
-Třída `CodeStatsGenerator` je zodpovědná za generování statistik o změnách v kódu.
+Třída `CodeStatsProvider` je zodpovědná za generování statistik o změnách v kódu.
 
 **Klíčové funkce:**
-- Specializuje se výhradně na generování statistik z git diffu
+- Specializuje se výhradně na poskytování statistik z git diffu
 - Pracuje s konkrétním pracovním adresářem a podporuje filtrování souborů
 - Používá Git diff příkazy pro získání statistik
 
@@ -148,15 +159,15 @@ Třída `CodeStatsGenerator` je zodpovědná za generování statistik o změná
 - `generateStats(referenceHash)`: Generuje statistiky na základě poskytnutého referenčního hashe
 - `parseGitDiffShortstat(diffOutput)`: Parsuje výstup příkazu git diff --shortstat
 
-### 8. StatsReporter
+### 8. CodeStatsManager
 
-Třída `StatsReporter` je zodpovědná za reportování statistik o změnách v kódu.
+Třída `CodeStatsManager` je zodpovědná za správu odesílání statistik o změnách v kódu.
 
 **Klíčové funkce:**
 - Používá debouncing mechanismus pro optimalizaci odesílání statistik
 - Sleduje události uložení souborů a smazání souborů
 - Získává statistiky pouze při významných změnách
-- Využívá `GitReferenceManager` a `CodeStatsGenerator` pro získání aktuálních statistik
+- Využívá `GitReferenceManager` a `CodeStatsProvider` pro získání aktuálních statistik
 - Využívá `ApiClient` pro odeslání statistik na server
 
 **Hlavní metody:**
@@ -170,7 +181,7 @@ Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Gi
 
 **Klíčové funkce:**
 - Integruje Git funkcionalitu s DevLog backendem pro sledování commitů
-- Obsahuje instance `GitRepositoryProvider`, `CommitInfoService`, `GitHookInstaller` a `CommitEventListener`
+- Obsahuje instance `GitRepositoryProvider`, `CommitInfoProvider`, `GitHookInstaller` a `CommitEventListener`
 - Zajišťuje instalaci Git hooků a naslouchání commit událostem
 - Zpracovává detekované commity a odesílá informace na server
 
@@ -179,7 +190,21 @@ Třída `CommitTrackingService` je zodpovědná za sledování a zpracování Gi
 - `handleCommit()`: Zpracovává detekci commitu - získává informace a odesílá je na server
 - `dispose()`: Uvolní použité zdroje
 
-### 10. Utility moduly
+### 10. CommitInfoProvider
+
+Třída `CommitInfoProvider` je zodpovědná za poskytování informací o commitech.
+
+**Klíčové funkce:**
+- Poskytuje informace o commit událostech z Git repozitáře
+- Získává detaily o commit zprávách, hash a časových značkách
+- Extrahuje informace o repozitáři pro provázání s projekty
+
+**Hlavní metody:**
+- `getCommitInfo(repository, commitHash?)`: Získává informace o commitu
+- `getRepositoryInfo(repository)`: Získává informace o repozitáři
+- `parseGitRemoteUrl(remoteUrl)`: Parsuje URL repozitáře pro získání vlastníka a názvu
+
+### 11. Utility moduly
 
 **shell.ts**
 - Obsahuje funkci `runCommand` pro spouštění shell příkazů
@@ -205,13 +230,17 @@ Rozšíření používá modulární architekturu s jasně oddělenými zodpově
    - `WindowStateManager` - sleduje stav okna VS Code a emituje události
    - `HeartbeatManager` - zajišťuje pravidelné odesílání heartbeatů
    - `GitReferenceManager` - poskytuje přístup k Git referenčním bodům
-   - `CodeStatsGenerator` - generuje statistiky o změnách v kódu
-   - `StatsReporter` - reportuje statistiky kódu
+   - `CodeStatsManager` - spravuje odesílání statistik kódu
 
-4. **Tok dat a událostí**:
+4. **Poskytovatelé dat**:
+   - `CodeStatsProvider` - poskytuje statistiky o změnách v kódu
+   - `CommitInfoProvider` - poskytuje informace o commitech
+   - `GitRepositoryProvider` - poskytuje přístup k Git repozitářům
+
+5. **Tok dat a událostí**:
    - VS Code události (stav okna) -> `WindowStateManager` -> `ActivityTrackingService`
    - Změna stavu okna -> `ActivityTrackingService` -> `HeartbeatManager`/`ApiClient`
-   - Uložení souborů/smazání -> `StatsReporter` -> `CodeStatsTrackingService`
+   - Uložení souborů/smazání -> `CodeStatsManager` -> `CodeStatsTrackingService`
    - Git commit -> `CommitEventListener` -> `CommitTrackingService` -> `ApiClient`
 
 Tato architektura dodržuje několik důležitých principů:
@@ -243,11 +272,11 @@ Rozšíření používá pravidelné heartbeaty namísto sledování konkrétní
 ### Sledování statistik o změnách v kódu
 
 Rozšíření sbírá a odesílá statistiky o změnách v kódu efektivním způsobem:
-1. `CodeStatsTrackingService` vytváří a spravuje `GitReferenceManager` a `StatsReporter`
+1. `CodeStatsTrackingService` vytváří a spravuje `GitReferenceManager` a `CodeStatsManager`
 2. Při změně sessionId vytváří nový referenční bod pomocí `GitReferenceManager`
-3. `StatsReporter` používá debouncing mechanismus pro sledování změn v kódu
+3. `CodeStatsManager` používá debouncing mechanismus pro sledování změn v kódu
 4. Reaguje na události uložení a smazání souborů
-5. Po uplynutí debouncing intervalu získává statistiky pomocí `CodeStatsGenerator`
+5. Po uplynutí debouncing intervalu získává statistiky pomocí `CodeStatsProvider`
 6. Statistiky zahrnují počet změněných souborů, přidaných a odebraných řádků
 7. Server používá tyto statistiky k obohacení popisků time logs v Notion
 
@@ -258,7 +287,7 @@ Rozšíření také automaticky sleduje Git commity v aktuálním repozitáři:
 2. `CommitEventListener` naslouchá změnám tohoto signálního souboru
 3. Při detekci commitu:
    - `CommitTrackingService` zpracuje událost commitu
-   - Získá informace o commitu pomocí `CommitInfoService` a `GitRepositoryProvider`
+   - Získá informace o commitu pomocí `CommitInfoProvider` a `GitRepositoryProvider`
    - Informace o commitu jsou odeslány na server pomocí `ApiClient`
 4. Server použije tyto informace pro vytvoření nového záznamu v Notion
 

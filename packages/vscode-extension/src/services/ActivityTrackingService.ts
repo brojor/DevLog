@@ -1,8 +1,8 @@
 import type { WindowState } from '@devlog/shared'
 import type * as vscode from 'vscode'
-import type { ApiClient } from './ApiClient'
-import { HeartbeatManager } from './HeartbeatManager'
-import { WindowStateManager } from './WindowStateManager'
+import type { ApiClient } from '../api/ApiClient'
+import { HeartbeatManager } from '../managers/HeartbeatManager'
+import { WindowStateManager } from '../managers/WindowStateManager'
 
 /**
  * Service responsible for tracking VS Code window activity and coordinating heartbeats
