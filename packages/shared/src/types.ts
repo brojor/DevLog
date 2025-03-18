@@ -6,7 +6,6 @@ export enum HeartbeatSource {
 export interface Heartbeat {
   timestamp: number
   source: HeartbeatSource
-  projectName?: string
 }
 
 export interface CodeStats {
